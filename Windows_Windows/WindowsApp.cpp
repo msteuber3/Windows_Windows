@@ -1,7 +1,19 @@
+//***********************************************
+// WindowsWindows
+// Copyright 2024 Accurate Tool Company, Inc.
+//===============================================
+// WindowsApp.cpp
+// ----------------------------------------------
+// 07/23/2024 MS-24.01.01.0 created
+//-----------------------------------------------
+// Main window source code
+
 #include "WindowsApp.h"
 
 
-WindowsApp::WindowsApp() : m_hwnd(NULL){}
+WindowsApp::WindowsApp(HINSTANCE hInstance) : m_hwnd(NULL){
+    Create(hInstance);
+}
 
 
 LRESULT WindowsApp::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

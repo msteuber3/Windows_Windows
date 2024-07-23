@@ -2,7 +2,7 @@
 // WindowsWindows
 // Copyright 2024 Accurate Tool Company, Inc.
 //===============================================
-// DirectXPDFEngine.MainRenderer.cpp
+// WinMain.cpp
 // ----------------------------------------------
 // 07/23/2024 MS-24.01.01.0 created
 //-----------------------------------------------
@@ -15,7 +15,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
 
 	
+	WindowsApp app = WindowsApp(hInstance);
 
+	if (app.m_hwnd != NULL) {
+		ShowWindow(app.Window(), nCmdShow);
+	}
 
 	return 0;
 }
