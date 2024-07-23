@@ -17,8 +17,6 @@ LRESULT WindowsApp::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hwnd, &ps);
 
-        // All painting occurs here, between BeginPaint and EndPaint.
-
         FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
 
         EndPaint(hwnd, &ps);
