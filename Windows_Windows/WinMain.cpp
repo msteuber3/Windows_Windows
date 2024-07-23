@@ -14,5 +14,8 @@
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {
 	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
 
+	
+
+
 	return 0;
 }
