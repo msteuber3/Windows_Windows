@@ -4,26 +4,33 @@
 //===============================================
 // WindowsApp.h
 // ----------------------------------------------
+// 07/25/2024 MS-24.01.02.1 Updated to be compatible with template window
 // 07/23/2024 MS-24.01.01.0 created
 //-----------------------------------------------
 // Main window header code
 
 #pragma once
+#include <iostream>
 #include <Windows.h>
-class WindowsApp {
+#include "BaseWindow.cpp"
+
+class WindowsApp : public BaseWindow<WindowsApp> {
 
 public:
-    WindowsApp(HINSTANCE hInstance);
+    WindowsApp();
 
-	static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    HRESULT Initialize();
 
-    BOOL Create(HINSTANCE hInstance);
+    void RunMessageLoop();
 
-    HWND Window();
-
-    HWND m_hwnd;
+    PCWSTR  ClassName() const;
+    
+    LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
-    virtual PCWSTR  ClassName() const;
-    virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+    HRESULT HandleCreate();
+
+    void HandlePaint();
+
+    void HandleResize();
 };

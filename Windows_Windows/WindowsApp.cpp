@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 07/25/2024 MS-24.01.02.2 Updated to be compatible with template window
 // 07/23/2024 MS-24.01.01.0 created
 //-----------------------------------------------
 // Main window source code
@@ -11,83 +12,74 @@
 #include "WindowsApp.h"
 
 
-WindowsApp::WindowsApp(HINSTANCE hInstance) : m_hwnd(NULL){
-    Create(hInstance);
-}
+WindowsApp::WindowsApp(){}
 
 
-LRESULT WindowsApp::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    switch (uMsg)
+
+void WindowsApp::RunMessageLoop() {
+    MSG msg;
+
+    while (GetMessage(&msg, NULL, 0, 0))
     {
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-
-    case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-
-        FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
-
-        EndPaint(hwnd, &ps);
-    }
-    return 0;
-
-    }
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
-}
-
-BOOL WindowsApp::Create(HINSTANCE hInstance)
-{
-    const wchar_t CLASS_NAME[] = L"Windows Window Extension";
-
-    WNDCLASS wc = {};
-
-    wc.lpfnWndProc = WindowProc;
-    wc.hInstance = hInstance;
-    wc.lpszClassName = CLASS_NAME;
-
-    RegisterClass(&wc);
-
-
-    m_hwnd = CreateWindowEx(
-        0,
-        CLASS_NAME,
-        L"Windows Window Extension Window",
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        NULL, NULL,
-        hInstance,
-        NULL
-    );
-    if (m_hwnd == NULL)
-    {
-        return 0;
-    }
-
-    MSG msg = {};
-    while (GetMessage(&msg, NULL, 0, 0) > 0) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
 }
 
-HWND WindowsApp::Window()
-{
-	return HWND();
-}
+PCWSTR WindowsApp::ClassName() const { return L"Windows Window Extension"; }
 
-PCWSTR WindowsApp::ClassName() const
+HRESULT WindowsApp::Initialize()
 {
-	return PCWSTR();
+    HRESULT hr;
+    hr = this->Create(L"Windows Window Extension Window",
+        WS_OVERLAPPEDWINDOW,
+        0,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT
+    );
+    return hr;
+
 }
 
 LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	return LRESULT();
+    LRESULT lResult = 0;
+
+
+    switch (uMsg) {
+    case WM_CREATE:
+        HandleCreate();
+        break;
+    case WM_PAINT:
+        HandlePaint();
+        break;
+    case WM_SIZE:
+        HandleResize();
+        break;
+    case WM_CLOSE:
+        DestroyWindow(m_hwnd);
+        break;
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        break;
+    }
+    return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
+}
+HRESULT WindowsApp::HandleCreate() {
+    HRESULT hr = S_OK;
+    if (m_hwnd && m_hwnd != 0) {
+        ShowWindow(m_hwnd, SW_SHOWNORMAL);
+        UpdateWindow(m_hwnd);
+    }
+    return hr;
+}
+
+void WindowsApp::HandlePaint() {
+    UpdateWindow(m_hwnd);
+}
+
+void WindowsApp::HandleResize(){
+    UpdateWindow(m_hwnd);
 }

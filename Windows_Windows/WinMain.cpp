@@ -4,22 +4,23 @@
 //===============================================
 // WinMain.cpp
 // ----------------------------------------------
+// 07/25/2024 MS-24.01.02.0 Updated to be compatible with template window
 // 07/23/2024 MS-24.01.01.0 created
 //-----------------------------------------------
 // Windows entry point
 
-#include <Windows.h>
+#include <windows.h>
 #include "WindowsApp.h"
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) {
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
 
 	
-	WindowsApp app = WindowsApp(hInstance);
+	WindowsApp app;
 
-	if (app.m_hwnd != NULL) {
+	if (SUCCEEDED(app.Initialize())) {
 		ShowWindow(app.Window(), nCmdShow);
+		app.RunMessageLoop();
 	}
-
 	return 0;
 }
