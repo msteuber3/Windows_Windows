@@ -4,15 +4,18 @@
 //===============================================
 // WindowsApp.h
 // ----------------------------------------------
-// 07/25/2024 MS-24.01.02.1 Updated to be compatible with template window
-// 07/23/2024 MS-24.01.01.0 created
+// 07/25/2024 MS-24.01.02.06 Added PrintActiveWindows() 
+// 07/25/2024 MS-24.01.02.01 Updated to be compatible with template window
+// 07/23/2024 MS-24.01.01.00 created
 //-----------------------------------------------
 // Main window header code
 
 #pragma once
 #include <iostream>
 #include <Windows.h>
+#include <vector>
 #include "BaseWindow.cpp"
+#include "WindowControl.h"
 
 class WindowsApp : public BaseWindow<WindowsApp> {
 
@@ -36,4 +39,5 @@ private:
     void HandlePaint();
 
     void HandleResize();
+
 };

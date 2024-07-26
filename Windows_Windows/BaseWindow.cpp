@@ -4,14 +4,18 @@
 //===============================================
 // BaseWindowTemplate.cpp
 // ----------------------------------------------
-// 07/25/2024 MS-24.01.01.1 created
+// 07/25/2024 MS-24.0.02.04 - Added Window enumeration function to access all active windows 
+// 07/25/2024 MS-24.01.01.01 created
 //-----------------------------------------------
 // Template for all window classes so that you can manage the state of the application through the WindowProc callback function
-// MICROSOFT PROVIDED CODE
+// 07/25/2024 - MICROSOFT PROVIDED CODE
 
+#pragma once
 #include <Windows.h>
 #include <string>
 #include <sstream>
+#include <vector>
+#include "WindowControl.h"
 
 template <class DERIVED_TYPE>
 class BaseWindow
@@ -45,6 +49,8 @@ public:
 
     BaseWindow() : m_hwnd(NULL), m_hStaticControl(NULL) { }
 
+    virtual ~BaseWindow() {}
+
     BOOL Create(
         PCWSTR lpWindowName,
         DWORD dwStyle,
@@ -77,12 +83,20 @@ public:
 
 
     static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+        BaseWindow* app = reinterpret_cast<BaseWindow*>(lParam);
         WCHAR windowTitle[256];
         if (GetParent(hwnd) == NULL && IsWindowVisible(hwnd)) {
             if (GetWindowText(hwnd, windowTitle, sizeof(windowTitle) / sizeof(windowTitle[0])) == 0) {
                 return TRUE;
             }
             oss << L"Window Handle: " << hwnd << L" Title: " << windowTitle << "\r\n";
+            WindowHandle = hwnd;
+            app->WindowsVector.push_back(new WindowControl(
+                app->m_hwnd,
+                hwnd,
+                windowTitle,
+                static_cast<int>(app->WindowsVector.size() * 100)
+            ));
         }
         return TRUE;
     }
@@ -94,7 +108,9 @@ protected:
     virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) = 0;
 
     HWND m_hwnd;
+    static HWND WindowHandle;
     static std::wostringstream oss;
+    std::vector<WindowControl*> WindowsVector;
 
    
 };
