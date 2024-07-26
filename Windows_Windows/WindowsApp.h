@@ -27,6 +27,9 @@ public:
     
     LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+    void PrintActiveWindows();
+
+
 private:
     HRESULT HandleCreate();
 

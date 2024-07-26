@@ -10,11 +10,17 @@
 // Main window source code
 
 #include "WindowsApp.h"
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <psapi.h>
+
 
 
 WindowsApp::WindowsApp(){}
 
 
+std::wostringstream WindowsApp::oss;
 
 void WindowsApp::RunMessageLoop() {
     MSG msg;
@@ -67,12 +73,23 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
     return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 }
+
+void WindowsApp::PrintActiveWindows() {
+    EnumWindows(EnumWindowsProc, 0);
+    SetWindowText(m_hStaticControl, oss.str().c_str());
+}
+
 HRESULT WindowsApp::HandleCreate() {
     HRESULT hr = S_OK;
     if (m_hwnd && m_hwnd != 0) {
         ShowWindow(m_hwnd, SW_SHOWNORMAL);
         UpdateWindow(m_hwnd);
+        m_hStaticControl = CreateWindowEx(
+            0, TEXT("STATIC"), NULL,
+            WS_CHILD | WS_VISIBLE | SS_LEFT | WS_VSCROLL,
+            0, 0, 500, 400, m_hwnd, NULL, GetModuleHandle(NULL), NULL);
     }
+    PrintActiveWindows();
     return hr;
 }
 

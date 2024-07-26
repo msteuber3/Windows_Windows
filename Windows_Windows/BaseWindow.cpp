@@ -10,6 +10,8 @@
 // MICROSOFT PROVIDED CODE
 
 #include <Windows.h>
+#include <string>
+#include <sstream>
 
 template <class DERIVED_TYPE>
 class BaseWindow
@@ -41,7 +43,7 @@ public:
         }
     }
 
-    BaseWindow() : m_hwnd(NULL) { }
+    BaseWindow() : m_hwnd(NULL), m_hStaticControl(NULL) { }
 
     BOOL Create(
         PCWSTR lpWindowName,
@@ -73,10 +75,26 @@ public:
 
     HWND Window() const { return m_hwnd; }
 
+
+    static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+        WCHAR windowTitle[256];
+        if (GetParent(hwnd) == NULL && IsWindowVisible(hwnd)) {
+            if (GetWindowText(hwnd, windowTitle, sizeof(windowTitle) / sizeof(windowTitle[0])) == 0) {
+                return TRUE;
+            }
+            oss << L"Window Handle: " << hwnd << L" Title: " << windowTitle << "\r\n";
+        }
+        return TRUE;
+    }
+
+    HWND m_hStaticControl;
 protected:
 
     virtual PCWSTR  ClassName() const = 0;
     virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) = 0;
 
     HWND m_hwnd;
+    static std::wostringstream oss;
+
+   
 };
