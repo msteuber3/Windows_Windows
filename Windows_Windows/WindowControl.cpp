@@ -2,7 +2,7 @@
 // WindowsWindows
 // Copyright 2024 Accurate Tool Company, Inc.
 //===============================================
-// WindowsApp.cpp
+// WindowsControl.cpp
 // ----------------------------------------------
 // 07/31/2024 MS-24.01.02.06 Updated child window size for sub control windows - buttons now all work properly 
 // 07/23/2024 MS-24.01.01.0 created

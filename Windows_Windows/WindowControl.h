@@ -1,3 +1,15 @@
+//***********************************************
+// WindowsWindows
+// Copyright 2024 Accurate Tool Company, Inc.
+//===============================================
+// WindowControl.h
+// ----------------------------------------------
+// 
+// 07/31/2024 MS-24.01.02.06 Updated child window size for sub control windows - buttons now all work properly 
+// 07/23/2024 MS-24.01.01.0 created
+//-----------------------------------------------
+// Control Window header file
+
 #pragma once
 #include <Windows.h>
 #include <sstream>
@@ -14,16 +26,18 @@ public:
 	int GetYPos();
 
 	HWND m_hControlPanel;
+
+private:
+	
+
+	HWND m_InstanceHandle;
+
 	HWND m_Minimize;
 	HWND m_Maximize;
 	HWND m_Close;
 
 	HWND m_Title;
 	HWND m_Parent;
-private:
-	
-
-	HWND m_InstanceHandle;
 
 	LPCWSTR m_oss;
 
