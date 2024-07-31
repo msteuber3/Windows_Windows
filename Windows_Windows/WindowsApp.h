@@ -16,6 +16,7 @@
 #include <vector>
 #include "BaseWindow.cpp"
 #include "WindowControl.h"
+#include <shellapi.h>
 
 class WindowsApp : public BaseWindow<WindowsApp> {
 
@@ -39,5 +40,7 @@ private:
     void HandlePaint();
 
     void HandleResize();
+
+    void HandleScroll(WPARAM wParam);
 
 };

@@ -11,6 +11,7 @@
 
 #include <windows.h>
 #include "WindowsApp.h"
+#include <shellapi.h>
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);

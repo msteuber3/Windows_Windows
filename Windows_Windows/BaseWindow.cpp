@@ -47,7 +47,7 @@ public:
         }
     }
 
-    BaseWindow() : m_hwnd(NULL), m_hStaticControl(NULL) { }
+    BaseWindow() : m_hwnd(NULL), m_hControlWindow(NULL) { }
 
     virtual ~BaseWindow() {}
 
@@ -81,6 +81,7 @@ public:
 
     HWND Window() const { return m_hwnd; }
 
+    HWND m_hControlWindow;
 
     static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
         BaseWindow* app = reinterpret_cast<BaseWindow*>(lParam);
@@ -92,7 +93,7 @@ public:
             oss << L"Window Handle: " << hwnd << L" Title: " << windowTitle << "\r\n";
             WindowHandle = hwnd;
             app->WindowsVector.push_back(new WindowControl(
-                app->m_hwnd,
+                app->m_hControlWindow,
                 hwnd,
                 windowTitle,
                 static_cast<int>(app->WindowsVector.size() * 100)
@@ -101,7 +102,6 @@ public:
         return TRUE;
     }
 
-    HWND m_hStaticControl;
 protected:
 
     virtual PCWSTR  ClassName() const = 0;

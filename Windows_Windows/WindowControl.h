@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <sstream>
+#include <vector>
 
 class WindowControl {
 public:
@@ -10,17 +11,22 @@ public:
 
 	void Create();
 
-private:
+	int GetYPos();
+
+	HWND m_hControlPanel;
 	HWND m_Minimize;
 	HWND m_Maximize;
 	HWND m_Close;
 
 	HWND m_Title;
 	HWND m_Parent;
+private:
+	
 
 	HWND m_InstanceHandle;
 
 	LPCWSTR m_oss;
 
 	int m_x;
+
 };
