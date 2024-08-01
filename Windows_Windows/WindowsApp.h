@@ -17,6 +17,8 @@
 #include "BaseWindow.cpp"
 #include "WindowControl.h"
 #include <shellapi.h>
+#include <nlohmann/json.hpp>
+#include <fstream>
 
 class WindowsApp : public BaseWindow<WindowsApp> {
 
@@ -37,10 +39,14 @@ public:
 
     void StackWindows();
 
+    void WinWinSaveLayout();
+
 private:
     HWND m_hControlOptions;
 
     HWND m_hStackButton;
+
+    HWND m_hSaveWinLayout;
 
     HRESULT HandleCreate();
 

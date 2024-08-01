@@ -4,7 +4,8 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
-// // 08/01/2024 MS-24.01.02.07 Added stack windows button (broke scrolling again)
+// 08/01/2024 MS-24.01.02.07 Added save layout button (saves current layout in a json file)
+// 08/01/2024 MS-24.01.02.07 Added stack windows button (broke scrolling again)
 // 07/25/2024 MS-24.01.02.06 Fixed scrolling, cleaned up window destruction for better memory management, updated child window size for sub control windows
 // 07/25/2024 MS-24.01.02.05 Added global oss to store active windows ostreamstring and added function to get all active windows to the create event
 // 07/25/2024 MS-24.01.02.2 Updated to be compatible with template window
@@ -16,10 +17,10 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <Psapi.h>
 
 #define STACK 1
-#define WM_STACK_BUTTON (WM_USER + 1)
-
+#define SAVE_LAYOUT 2
 
 WindowsApp::WindowsApp() {}
 
@@ -76,6 +77,10 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             switch (id) {
             case STACK:
                 StackWindows();
+                break;
+            case SAVE_LAYOUT:
+                WinWinSaveLayout();
+                break;
             }
         }
         break;
@@ -105,6 +110,51 @@ void WindowsApp::StackWindows()
         SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, stackPos, stackPos, 750, 750, NULL);
         stackPos += 50;
     }
+}
+
+void WindowsApp::WinWinSaveLayout()
+{
+    const char* WinWinLayoutsFile = "WinWinSavedLayouts.json";
+    if (!std::filesystem::exists(WinWinLayoutsFile)) {
+        std::ofstream{ WinWinLayoutsFile };
+    }
+    std::fstream LayFile;
+    LayFile.open(WinWinLayoutsFile);
+    WINDOWPLACEMENT pInstancePlacement;
+    pInstancePlacement.length = sizeof(WINDOWPLACEMENT);
+    nlohmann::json placeInfo;
+    nlohmann::basic_json placeInfoTemp;
+    DWORD processId;
+    WCHAR path[MAX_PATH] = L"";
+    HANDLE hProcess;
+    for (WindowControl* ctrl : WindowsVector) {
+        GetWindowPlacement(ctrl->GetInstanceHandle(), &pInstancePlacement);
+
+        GetWindowThreadProcessId(ctrl->GetInstanceHandle(), &processId);
+        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
+        GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
+        CloseHandle(hProcess);
+        placeInfoTemp = { {"process", std::wstring(path).c_str()},
+            {"flags", pInstancePlacement.flags},
+        {"showCmd", pInstancePlacement.showCmd },
+        {"ptMinPosition",
+            { {"x", pInstancePlacement.ptMinPosition.x },
+             { "y",  pInstancePlacement.ptMinPosition.y } } },
+        {"ptMaxPosition", 
+             { { "x", pInstancePlacement.ptMaxPosition.x},
+               { "y", pInstancePlacement.ptMaxPosition.y} } },
+         {"rcNormalPosition",
+             { { "left", pInstancePlacement.rcNormalPosition.left },
+               { "right", pInstancePlacement.rcNormalPosition.right },
+               { "top", pInstancePlacement.rcNormalPosition.top },
+               { "bottom", pInstancePlacement.rcNormalPosition.bottom } } }
+        };
+        placeInfo.push_back(placeInfoTemp);
+        placeInfoTemp.clear();
+    }
+    LayFile << placeInfo;
+
+    LayFile.close();
 }
 
 HRESULT WindowsApp::HandleCreate() {
@@ -147,9 +197,20 @@ void WindowsApp::CreateControlOpts() {
         L"BUTTON",
         L"STACK",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        20, 20, 100, 30,
+        10, 20, 100, 30,
         m_hwnd,
         (HMENU)STACK,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
+    m_hSaveWinLayout = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"SAVE LAYOUT",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        110, 20, 100, 30,
+        m_hwnd,
+        (HMENU)SAVE_LAYOUT,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
 

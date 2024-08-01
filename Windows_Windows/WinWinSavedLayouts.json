@@ -1,0 +1,173 @@
+[
+  {
+    "flags": 0,
+    "process": "C:\\AS636\\Windows_Windows\\Windows_Windows\\x64\\Debug\\Windows_Windows.exe",
+    "ptMaxPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "ptMinPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "rcNormalPosition": {
+      "bottom": 1080,
+      "left": 234,
+      "right": 734,
+      "top": 80
+    },
+    "showCmd": 1
+  },
+  {
+    "flags": 2,
+    "process": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\devenv.exe",
+    "ptMaxPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "ptMinPosition": {
+      "x": -32000,
+      "y": -32000
+    },
+    "rcNormalPosition": {
+      "bottom": 750,
+      "left": 122,
+      "right": 872,
+      "top": 0
+    },
+    "showCmd": 3
+  },
+  {
+    "flags": 0,
+    "process": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+    "ptMaxPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "ptMinPosition": {
+      "x": -32000,
+      "y": -32000
+    },
+    "rcNormalPosition": {
+      "bottom": 910,
+      "left": 160,
+      "right": 910,
+      "top": 160
+    },
+    "showCmd": 1
+  },
+  {
+    "flags": 0,
+    "process": "C:\\Apps\\LibreOffice\\program\\soffice.bin",
+    "ptMaxPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "ptMinPosition": {
+      "x": -32000,
+      "y": -32000
+    },
+    "rcNormalPosition": {
+      "bottom": 810,
+      "left": 60,
+      "right": 810,
+      "top": 60
+    },
+    "showCmd": 1
+  },
+  {
+    "flags": 0,
+    "process": "C:\\Windows\\explorer.exe",
+    "ptMaxPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "ptMinPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "rcNormalPosition": {
+      "bottom": 846,
+      "left": 400,
+      "right": 1539,
+      "top": 205
+    },
+    "showCmd": 1
+  },
+  {
+    "flags": 0,
+    "process": "C:\\Apps\\todolist_exe\\ToDoList.exe",
+    "ptMaxPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "ptMinPosition": {
+      "x": -32000,
+      "y": -32000
+    },
+    "rcNormalPosition": {
+      "bottom": 1060,
+      "left": 310,
+      "right": 1060,
+      "top": 310
+    },
+    "showCmd": 1
+  },
+  {
+    "flags": 0,
+    "process": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\devenv.exe",
+    "ptMaxPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "ptMinPosition": {
+      "x": -32000,
+      "y": -32000
+    },
+    "rcNormalPosition": {
+      "bottom": 860,
+      "left": 110,
+      "right": 860,
+      "top": 110
+    },
+    "showCmd": 1
+  },
+  {
+    "flags": 0,
+    "process": "C:\\Windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe",
+    "ptMaxPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "ptMinPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "rcNormalPosition": {
+      "bottom": 760,
+      "left": 10,
+      "right": 760,
+      "top": 10
+    },
+    "showCmd": 1
+  },
+  {
+    "flags": 0,
+    "process": "C:\\Windows\\explorer.exe",
+    "ptMaxPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "ptMinPosition": {
+      "x": -1,
+      "y": -1
+    },
+    "rcNormalPosition": {
+      "bottom": 1080,
+      "left": 0,
+      "right": 1920,
+      "top": 0
+    },
+    "showCmd": 1
+  }
+]
