@@ -100,7 +100,9 @@ void WindowsApp::StackWindows()
 {   
     int stackPos = 10;
     for (WindowControl* ctrl : WindowsVector) {
-        SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, stackPos, stackPos, 500, 500, NULL);
+        ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);
+        SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, stackPos, stackPos, 750, 750, NULL);
+        SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, stackPos, stackPos, 750, 750, NULL);
         stackPos += 50;
     }
 }
