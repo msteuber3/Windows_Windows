@@ -25,8 +25,8 @@
 WindowsApp::WindowsApp() {}
 
 
-std::wostringstream WindowsApp::oss;
-HWND WindowsApp::WindowHandle;
+std::wostringstream WindowsApp::oss; //ostream string that contains window control panel titles
+HWND WindowsApp::WindowHandle; // Window handle that holds info for creation of the windows vector
 
 void WindowsApp::RunMessageLoop() {
     MSG msg;
@@ -43,6 +43,7 @@ PCWSTR WindowsApp::ClassName() const { return L"Windows Window Extension"; }
 HRESULT WindowsApp::Initialize()
 {
     HRESULT hr;
+    // See BaseWindow.cpp
     hr = this->Create(L"Windows Window Extension Window",
         WS_OVERLAPPEDWINDOW | WS_VSCROLL,
         0,
@@ -73,7 +74,7 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_COMMAND:
         if (HIWORD(wParam) == BN_CLICKED) {
-            int id = LOWORD(wParam);
+            int id = LOWORD(wParam);   //Extract button id from the wParam and dispatch accordingly
             switch (id) {
             case STACK:
                 StackWindows();
@@ -97,44 +98,45 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 void WindowsApp::PrintActiveWindows() {
-    EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(this));
-    
+    EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(this)); // Enumerate through the windows with this callback function. 
+                                                                  //EnumWindowsProc is a custom method, see BaseWindow.cpp
 }
 
 void WindowsApp::StackWindows()
 {   
     int stackPos = 10;
-    for (WindowControl* ctrl : WindowsVector) {
-        ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);
-        SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, stackPos, stackPos, 750, 750, NULL);
-        SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, stackPos, stackPos, 750, 750, NULL);
-        stackPos += 50;
+    for (WindowControl* ctrl : WindowsVector) { //Iterate through all windows in WindowsVector (all open windows)
+        ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);  // Set each window to normal mode (unmax/unmin)
+        SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, stackPos, stackPos, 750, 750, NULL); // Bring current window to front
+        SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, stackPos, stackPos, 750, 750, NULL); // Remove "TOPMOST" flag
+        stackPos += 50; 
     }
 }
 
 void WindowsApp::WinWinSaveLayout()
 {
-    const char* WinWinLayoutsFile = "WinWinSavedLayouts.json";
-    if (!std::filesystem::exists(WinWinLayoutsFile)) {
+    const char* WinWinLayoutsFile = "WinWinSavedLayouts.json";   // Name of json file (on same level as this code file)
+    if (!std::filesystem::exists(WinWinLayoutsFile)) { // Check if it exists, create it if not
         std::ofstream{ WinWinLayoutsFile };
     }
     std::fstream LayFile;
     LayFile.open(WinWinLayoutsFile);
     WINDOWPLACEMENT pInstancePlacement;
-    pInstancePlacement.length = sizeof(WINDOWPLACEMENT);
-    nlohmann::json placeInfo;
-    nlohmann::basic_json placeInfoTemp;
+    pInstancePlacement.length = sizeof(WINDOWPLACEMENT);  // Instantiate WINDOWPLACEMENT object
+    nlohmann::json placeInfo; // Final json that is written to file
+    nlohmann::basic_json placeInfoTemp; // Temp json, cleared after each run of the loop
     DWORD processId;
     WCHAR path[MAX_PATH] = L"";
     HANDLE hProcess;
     for (WindowControl* ctrl : WindowsVector) {
-        GetWindowPlacement(ctrl->GetInstanceHandle(), &pInstancePlacement);
-
-        GetWindowThreadProcessId(ctrl->GetInstanceHandle(), &processId);
-        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
+        GetWindowPlacement(ctrl->GetInstanceHandle(), &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
+                                                                            // Put into WINDOWPLACEMENT object 
+        GetWindowThreadProcessId(ctrl->GetInstanceHandle(), &processId); 
+        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executible associated with window handle
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
         CloseHandle(hProcess);
-        placeInfoTemp = { {"process", std::wstring(path).c_str()},
+
+        placeInfoTemp = { {"process", std::wstring(path).c_str()}, // Translate WINDOWPLACEMENT to json, stick the process in the front
             {"flags", pInstancePlacement.flags},
         {"showCmd", pInstancePlacement.showCmd },
         {"ptMinPosition",
@@ -149,10 +151,10 @@ void WindowsApp::WinWinSaveLayout()
                { "top", pInstancePlacement.rcNormalPosition.top },
                { "bottom", pInstancePlacement.rcNormalPosition.bottom } } }
         };
-        placeInfo.push_back(placeInfoTemp);
-        placeInfoTemp.clear();
+        placeInfo.push_back(placeInfoTemp); //append to main json
+        placeInfoTemp.clear();// clear temp
     }
-    LayFile << placeInfo;
+    LayFile << placeInfo; // add to json file
 
     LayFile.close();
 }
@@ -161,7 +163,7 @@ HRESULT WindowsApp::HandleCreate() {
     HRESULT hr = S_OK;
     if (m_hwnd && m_hwnd != 0) {
         ShowWindow(m_hwnd, SW_SHOWNORMAL);
-        m_hControlWindow = CreateWindowEx(
+        m_hControlWindow = CreateWindowEx( // Create window that holds all WindowControl control panels
             0, TEXT("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE | SS_LEFT ,
             0, 0, 500, 9000, m_hwnd, NULL, (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE), NULL);
@@ -169,11 +171,11 @@ HRESULT WindowsApp::HandleCreate() {
         UpdateWindow(m_hwnd);
        
     }
-    CreateControlOpts();
-    PrintActiveWindows();
+    CreateControlOpts(); // Create control buttons that are children of m_hwnd
+    PrintActiveWindows(); // Enumerate through active windows and create controls
     int ControlY = ((WindowsVector.size() + 1) * 100) + 75;
-    SetWindowPos(m_hControlWindow, NULL, 0, 0, 220, ControlY, SW_SHOWNORMAL);
-    SCROLLINFO si;
+    SetWindowPos(m_hControlWindow, NULL, 0, 0, 220, ControlY, SW_SHOWNORMAL); // resize control window
+    SCROLLINFO si; // Set scroll information
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_RANGE | SIF_PAGE;
     si.nMin = 0;
@@ -187,11 +189,6 @@ HRESULT WindowsApp::HandleCreate() {
 }
 
 void WindowsApp::CreateControlOpts() {
-   // m_hControlOptions = CreateWindowEx(
-   //     0, TEXT("STATIC"), NULL,
-   //     WS_CHILD | WS_VISIBLE | SS_LEFT,
-   //     0, 0, 500, 100, m_hControlWindow, NULL, (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE), NULL);
-
     m_hStackButton = CreateWindowEx(
         0,
         L"BUTTON",
