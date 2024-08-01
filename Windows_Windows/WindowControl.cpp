@@ -15,6 +15,7 @@
 #define MAX 2
 #define CLOSE 3
 
+
 WindowControl::WindowControl(HWND parent, HWND InstanceHandle, LPCWSTR oss, int x) : m_Minimize(NULL), m_Maximize(NULL), m_Close(NULL), m_hControlPanel(NULL){
     m_Parent = parent;
     m_oss = oss;
@@ -32,13 +33,13 @@ void WindowControl::Create()
 
     RegisterClass(&wc);
 
-    m_hControlPanel = CreateWindowEx(
+    m_hControlPanel = CreateWindowExW(
         0,
         wc.lpszClassName, // Use a static control or any other class
         L"Control Panel",
         WS_CHILD | WS_VISIBLE | WS_BORDER,
         0,
-        0,
+        75,
         1000,
         m_x + 100, // Position and size
         m_Parent, // Parent window handle
@@ -98,6 +99,11 @@ int WindowControl::GetYPos(){
     return controlRect.top;
 }
 
+HWND WindowControl::GetInstanceHandle()
+{
+    return this->m_InstanceHandle;
+}
+
 LRESULT CALLBACK WindowControl::ControlPanelProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
     case WM_COMMAND:
@@ -127,3 +133,4 @@ LRESULT CALLBACK WindowControl::ControlPanelProc(HWND hwnd, UINT message, WPARAM
     }
     return DefWindowProc(hwnd, message, wParam, lParam);
 }
+

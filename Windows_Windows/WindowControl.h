@@ -23,7 +23,11 @@ public:
 
 	void Create();
 
+	void StackWindows();
+
 	int GetYPos();
+
+	HWND GetInstanceHandle();
 
 	HWND m_hControlPanel;
 

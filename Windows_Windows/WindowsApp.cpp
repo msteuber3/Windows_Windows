@@ -4,7 +4,8 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
-// 07/25/2024 MS-24.01.02.0 Fixed scrolling, cleaned up window destruction for better memory management, updated child window size for sub control windows
+// // 08/01/2024 MS-24.01.02.07 Added stack windows button (broke scrolling again)
+// 07/25/2024 MS-24.01.02.06 Fixed scrolling, cleaned up window destruction for better memory management, updated child window size for sub control windows
 // 07/25/2024 MS-24.01.02.05 Added global oss to store active windows ostreamstring and added function to get all active windows to the create event
 // 07/25/2024 MS-24.01.02.2 Updated to be compatible with template window
 // 07/23/2024 MS-24.01.01.0 created
@@ -15,6 +16,9 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+
+#define STACK 1
+#define WM_STACK_BUTTON (WM_USER + 1)
 
 
 WindowsApp::WindowsApp() {}
@@ -66,6 +70,15 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_VSCROLL:
         HandleScroll(wParam);
         break;
+    case WM_COMMAND:
+        if (HIWORD(wParam) == BN_CLICKED) {
+            int id = LOWORD(wParam);
+            switch (id) {
+            case STACK:
+                StackWindows();
+            }
+        }
+        break;
     case WM_CLOSE:
         if (m_hwnd != NULL) {
             DestroyWindow(m_hwnd);
@@ -83,6 +96,15 @@ void WindowsApp::PrintActiveWindows() {
     
 }
 
+void WindowsApp::StackWindows()
+{   
+    int stackPos = 10;
+    for (WindowControl* ctrl : WindowsVector) {
+        SetWindowPos(ctrl->GetInstanceHandle(), NULL, stackPos, stackPos, 500, 500, NULL);
+        stackPos += 50;
+    }
+}
+
 HRESULT WindowsApp::HandleCreate() {
     HRESULT hr = S_OK;
     if (m_hwnd && m_hwnd != 0) {
@@ -90,13 +112,14 @@ HRESULT WindowsApp::HandleCreate() {
         m_hControlWindow = CreateWindowEx(
             0, TEXT("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE | SS_LEFT ,
-            0, 0, 500, 9000, m_hwnd, NULL, GetModuleHandle(NULL), NULL);
+            0, 0, 500, 9000, m_hwnd, NULL, (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE), NULL);
 
         UpdateWindow(m_hwnd);
        
     }
+    CreateControlOpts();
     PrintActiveWindows();
-    int ControlY = (WindowsVector.size() + 1) * 100;
+    int ControlY = ((WindowsVector.size() + 1) * 100) + 75;
     SetWindowPos(m_hControlWindow, NULL, 0, 0, 220, ControlY, SW_SHOWNORMAL);
     SCROLLINFO si;
     si.cbSize = sizeof(SCROLLINFO);
@@ -104,10 +127,30 @@ HRESULT WindowsApp::HandleCreate() {
     si.nMin = 0;
     si.nMax = ControlY;
     si.nPage = 1000;
-    SetScrollInfo(m_hwnd, SB_VERT, &si, TRUE);
-
+    if (m_hwnd != 0) {
+        SetScrollInfo(m_hwnd, SB_VERT, &si, TRUE);
+    }
 
     return hr;
+}
+
+void WindowsApp::CreateControlOpts() {
+   // m_hControlOptions = CreateWindowEx(
+   //     0, TEXT("STATIC"), NULL,
+   //     WS_CHILD | WS_VISIBLE | SS_LEFT,
+   //     0, 0, 500, 100, m_hControlWindow, NULL, (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE), NULL);
+
+    m_hStackButton = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"STACK",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        20, 20, 100, 30,
+        m_hwnd,
+        (HMENU)STACK,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
 }
 
 void WindowsApp::HandlePaint() {
@@ -167,7 +210,7 @@ void WindowsApp::HandleScroll(WPARAM wParam) {
 
     nPos = GetScrollPos(m_hwnd, SB_VERT);
 
-    ScrollWindowEx(m_hwnd, 0, (nOldPos - nPos) * 1,
+    ScrollWindowEx(m_hwnd, 0, (int)(nOldPos - nPos) * 1,
         NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_SCROLLCHILDREN);
 
 

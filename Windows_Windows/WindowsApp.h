@@ -33,8 +33,15 @@ public:
 
     void PrintActiveWindows();
 
+    void CreateControlOpts();
+
+    void StackWindows();
 
 private:
+    HWND m_hControlOptions;
+
+    HWND m_hStackButton;
+
     HRESULT HandleCreate();
 
     void HandlePaint();

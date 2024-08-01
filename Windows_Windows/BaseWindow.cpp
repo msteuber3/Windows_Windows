@@ -96,7 +96,7 @@ public:
                 app->m_hControlWindow,
                 hwnd,
                 windowTitle,
-                static_cast<int>(app->WindowsVector.size() * 100)
+                (static_cast<int>(app->WindowsVector.size() * 100))
             ));
         }
         return TRUE;
