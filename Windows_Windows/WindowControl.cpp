@@ -35,15 +35,15 @@ void WindowControl::Create()
 
     m_hControlPanel = CreateWindowExW(
         0,
-        wc.lpszClassName, // Use a static control or any other class
+        wc.lpszClassName, 
         L"Control Panel",
         WS_CHILD | WS_VISIBLE | WS_BORDER,
         0,
-        75,
+        150,
         1000,
-        m_x + 100, // Position and size
-        m_Parent, // Parent window handle
-        NULL, // Menu handle (if any)
+        m_x + 100,
+        m_Parent, 
+        NULL, 
         wc.hInstance,
         NULL
     );
@@ -127,9 +127,6 @@ LRESULT CALLBACK WindowControl::ControlPanelProc(HWND hwnd, UINT message, WPARAM
             }
         }
         break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
     }
     return DefWindowProc(hwnd, message, wParam, lParam);
 }

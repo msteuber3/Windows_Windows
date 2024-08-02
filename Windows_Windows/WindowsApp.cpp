@@ -4,7 +4,8 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
-// 08/01/2024 MS-24.01.02.07 Added save layout button (saves current layout in a json file)
+// 08/01/2024 MS-24.01.02.09 Added dropdown menu to hide active window list
+// 08/01/2024 MS-24.01.02.08 Added save layout button (saves current layout in a json file)
 // 08/01/2024 MS-24.01.02.07 Added stack windows button (broke scrolling again)
 // 07/25/2024 MS-24.01.02.06 Fixed scrolling, cleaned up window destruction for better memory management, updated child window size for sub control windows
 // 07/25/2024 MS-24.01.02.05 Added global oss to store active windows ostreamstring and added function to get all active windows to the create event
@@ -21,6 +22,8 @@
 
 #define STACK 1
 #define SAVE_LAYOUT 2
+#define SHOW_ACTIVE_WINDOWS 3
+#define HIDE_ACTIVE_WINDOWS 4
 
 WindowsApp::WindowsApp() {}
 
@@ -50,7 +53,7 @@ HRESULT WindowsApp::Initialize()
         CW_USEDEFAULT,
         CW_USEDEFAULT,
         500,
-        1000
+        175
     );
     return hr;
 }
@@ -75,12 +78,53 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         if (HIWORD(wParam) == BN_CLICKED) {
             int id = LOWORD(wParam);   //Extract button id from the wParam and dispatch accordingly
+            int ControlY = ((WindowsVector.size() + 1) * 100) + 75;
             switch (id) {
             case STACK:
                 StackWindows();
                 break;
             case SAVE_LAYOUT:
                 WinWinSaveLayout();
+                break;
+            case SHOW_ACTIVE_WINDOWS:
+                  // Enumerate through active windows and create controls
+                PrintActiveWindows();
+                ControlY = ((WindowsVector.size() + 1) * 100) + 75;
+                SetWindowPos(m_hControlWindow, NULL, 0, 500, 500, ControlY, SW_SHOWNORMAL); // resize control window
+                SetWindowPos(m_hwnd, NULL, 0, 0, 500, ControlY, SWP_NOMOVE);
+                DestroyWindow(m_hShowWindows);
+                m_hHideWindows = CreateWindowEx(
+                    0,
+                    L"BUTTON",
+                    L"^",
+                    WS_TABSTOP | WS_VISIBLE | WS_CHILD,
+                    0, 100, 400, 30,
+                    m_hwnd,
+                    (HMENU)HIDE_ACTIVE_WINDOWS,
+                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+                    NULL);
+                for (WindowControl* ctrl : WindowsVector) {
+                    SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                }
+                break;
+            case HIDE_ACTIVE_WINDOWS:
+                for (WindowControl* ctrl : WindowsVector) {
+                    SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW );
+                }
+                SetWindowPos(m_hControlWindow, NULL, 0, 0, 500, 175, SW_SHOWNORMAL | SW_INVALID); // resize control window
+                SetWindowPos(m_hwnd, NULL, 0, 0, 500, 175, SWP_NOMOVE);
+                m_hShowWindows = CreateWindowEx(
+                    0,
+                    L"BUTTON",
+                    L"V",
+                    WS_TABSTOP | WS_VISIBLE | WS_CHILD,
+                    0, 100, 400, 30,
+                    m_hwnd,
+                    (HMENU)SHOW_ACTIVE_WINDOWS,
+                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+                    NULL);
+                DestroyWindow(m_hHideWindows);
+
                 break;
             }
         }
@@ -172,9 +216,9 @@ HRESULT WindowsApp::HandleCreate() {
        
     }
     CreateControlOpts(); // Create control buttons that are children of m_hwnd
-    PrintActiveWindows(); // Enumerate through active windows and create controls
-    int ControlY = ((WindowsVector.size() + 1) * 100) + 75;
-    SetWindowPos(m_hControlWindow, NULL, 0, 0, 220, ControlY, SW_SHOWNORMAL); // resize control window
+    // Enumerate through active windows and create controls
+    int ControlY = 400;
+    SetWindowPos(m_hControlWindow, NULL, 0, 0, 500, ControlY, SW_SHOWNORMAL); // resize control window
     SCROLLINFO si; // Set scroll information
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_RANGE | SIF_PAGE;
@@ -194,7 +238,7 @@ void WindowsApp::CreateControlOpts() {
         L"BUTTON",
         L"STACK",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        10, 20, 100, 30,
+        10, 20, 110, 30,
         m_hwnd,
         (HMENU)STACK,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
@@ -205,9 +249,20 @@ void WindowsApp::CreateControlOpts() {
         L"BUTTON",
         L"SAVE LAYOUT",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        110, 20, 100, 30,
+        120, 20, 110, 30,
         m_hwnd,
         (HMENU)SAVE_LAYOUT,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
+    m_hShowWindows = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"V",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD,
+        0, 100, 400, 30,
+        m_hwnd,
+        (HMENU)SHOW_ACTIVE_WINDOWS,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
 

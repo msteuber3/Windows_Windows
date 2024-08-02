@@ -59,6 +59,10 @@ private:
     // Save layout button window handle
     HWND m_hSaveWinLayout;
 
+    HWND m_hShowWindows;
+
+    HWND m_hHideWindows;
+
     // Called upon window creation. Creates all child windows of m_hwnd
     HRESULT HandleCreate();
 
