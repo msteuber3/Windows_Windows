@@ -6,15 +6,15 @@ Expand windows customization options in windows
 
 # TODO:
 
-- [ ] Save and Restore WinWinInfo properties to JSON files by WinWinId# number\
+- [ x ] Save and Restore WinWinInfo properties to JSON files by WinWinId# number\
        Properties - 
-    - [ ] Open Windows application information (like executable or shortcut name)
-    - [ ]  Open Windows layout positions
+    - [ x ] Open Windows application information (like executable or shortcut name)
+    - [ x ]  Open Windows layout positions
     - [ ]  Desktop Icons layout positions
 
 
 - [ ] Shortcuts to Execute the WinWinSave feature - 
-    - [ ] WinWinSave with unique WinWinId# as an argument saves all currently open Windows information required by the Restore feature\
+    - [ x ] WinWinSave with unique WinWinId# as an argument saves all currently open Windows information required by the Restore feature\
         - ex: winwinsave 3 saves the current Windows layout to WinWinInfo3.json
 
 
