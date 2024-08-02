@@ -134,14 +134,16 @@
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
     <ClInclude Include="WindowControl.h" />
     <ClInclude Include="WindowsApp.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="WinWinSavedLayouts.json">
-      <FileType>Text</FileType>
-    </None>
+    <None Include="SavedLayouts\WinWinSavedLayouts.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Windows_Windows.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

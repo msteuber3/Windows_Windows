@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 08/01/2024 MS-24.01.02.09 Added controls for viewing saved layouts, updated json folder to include multiple files for different layouts
 // 08/01/2024 MS-24.01.02.09 Added dropdown menu to hide active window list
 // 08/01/2024 MS-24.01.02.08 Added save layout button (saves current layout in a json file)
 // 08/01/2024 MS-24.01.02.07 Added stack windows button (broke scrolling again)
@@ -19,17 +20,25 @@
 #include <sstream>
 #include <iostream>
 #include <Psapi.h>
+#include "resource.h"
 
 #define STACK 1
 #define SAVE_LAYOUT 2
 #define SHOW_ACTIVE_WINDOWS 3
 #define HIDE_ACTIVE_WINDOWS 4
+#define VIEW_SAVED_CONFIGS 5
+#define EXECUTE_LAYOUT 6
+#define HIDE_SAVED_CONFIGS 7
+
+INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 WindowsApp::WindowsApp() {}
 
 
 std::wostringstream WindowsApp::oss; //ostream string that contains window control panel titles
 HWND WindowsApp::WindowHandle; // Window handle that holds info for creation of the windows vector
+static std::wstring userInput;
+std::vector<HWND> layoutButtons;
 
 void WindowsApp::RunMessageLoop() {
     MSG msg;
@@ -85,6 +94,37 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 break;
             case SAVE_LAYOUT:
                 WinWinSaveLayout();
+                break;
+            case VIEW_SAVED_CONFIGS:
+                WinWinViewSaved();
+                DestroyWindow(m_hSavedConfigs);
+                m_hHideSavedConfigs = CreateWindowEx(
+                    0,
+                    L"BUTTON",
+                    L"<",
+                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+                    230, 20, 110, 30,
+                    m_hwnd,
+                    (HMENU)HIDE_SAVED_CONFIGS,
+                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+                    NULL);
+                break;
+            case HIDE_SAVED_CONFIGS:
+                for (HWND layoutButton : layoutButtons) {
+                    DestroyWindow(layoutButton);
+                }
+                DestroyWindow(m_hHideSavedConfigs);
+                m_hSavedConfigs = CreateWindowEx(
+                    0,
+                    L"BUTTON",
+                    L"SAVED CONFIGS",
+                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+                    230, 20, 110, 30,
+                    m_hwnd,
+                    (HMENU)VIEW_SAVED_CONFIGS,
+                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+                    NULL);
+                SetWindowPos(m_hwnd, NULL, 0, 0, 500, 175, SWP_NOMOVE);
                 break;
             case SHOW_ACTIVE_WINDOWS:
                   // Enumerate through active windows and create controls
@@ -157,22 +197,65 @@ void WindowsApp::StackWindows()
     }
 }
 
+
+INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+    case WM_INITDIALOG:
+        return TRUE;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+        case IDOK: {
+            WCHAR text[256];
+            GetDlgItemText(hDlg, IDC_EDIT_TEXT, text, 256);
+            userInput = text; // Store the input text in the global variable
+            EndDialog(hDlg, IDOK);
+            return TRUE;
+        }
+        case IDCANCEL:
+            EndDialog(hDlg, IDCANCEL);
+            return TRUE;
+        }
+        break;
+    }
+    return FALSE;
+}
+
+std::wstring GetUserInput(HINSTANCE hInstance) {
+    userInput.clear(); // Clear previous input
+    if (DialogBox(hInstance, MAKEINTRESOURCE(IDD_SIMPLE_INPUT_DIALOG), NULL, DialogProc) == IDOK) {
+        return userInput;
+    }
+    return L"";
+}
+
 void WindowsApp::WinWinSaveLayout()
 {
-    const char* WinWinLayoutsFile = "WinWinSavedLayouts.json";   // Name of json file (on same level as this code file)
+
+    std::wstring layoutName = GetUserInput((HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE));
+
+    std::wstring WinWinLayoutsFile = L"SavedLayouts/" + layoutName + L".json";   // Name of json file (in SavedLayouts folder)
+
     if (!std::filesystem::exists(WinWinLayoutsFile)) { // Check if it exists, create it if not
         std::ofstream{ WinWinLayoutsFile };
     }
+
     std::fstream LayFile;
     LayFile.open(WinWinLayoutsFile);
+
+    
     WINDOWPLACEMENT pInstancePlacement;
     pInstancePlacement.length = sizeof(WINDOWPLACEMENT);  // Instantiate WINDOWPLACEMENT object
+
     nlohmann::json placeInfo; // Final json that is written to file
     nlohmann::basic_json placeInfoTemp; // Temp json, cleared after each run of the loop
+
     DWORD processId;
     WCHAR path[MAX_PATH] = L"";
     HANDLE hProcess;
+
     for (WindowControl* ctrl : WindowsVector) {
+
         GetWindowPlacement(ctrl->GetInstanceHandle(), &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
                                                                             // Put into WINDOWPLACEMENT object 
         GetWindowThreadProcessId(ctrl->GetInstanceHandle(), &processId); 
@@ -180,13 +263,13 @@ void WindowsApp::WinWinSaveLayout()
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
         CloseHandle(hProcess);
 
-        placeInfoTemp = { {"process", std::wstring(path).c_str()}, // Translate WINDOWPLACEMENT to json, stick the process in the front
+        placeInfoTemp = { {"process", std::wstring(path).c_str(),// Translate WINDOWPLACEMENT to json, stick the process in the front
             {"flags", pInstancePlacement.flags},
         {"showCmd", pInstancePlacement.showCmd },
         {"ptMinPosition",
             { {"x", pInstancePlacement.ptMinPosition.x },
              { "y",  pInstancePlacement.ptMinPosition.y } } },
-        {"ptMaxPosition", 
+        {"ptMaxPosition",
              { { "x", pInstancePlacement.ptMaxPosition.x},
                { "y", pInstancePlacement.ptMaxPosition.y} } },
          {"rcNormalPosition",
@@ -194,13 +277,47 @@ void WindowsApp::WinWinSaveLayout()
                { "right", pInstancePlacement.rcNormalPosition.right },
                { "top", pInstancePlacement.rcNormalPosition.top },
                { "bottom", pInstancePlacement.rcNormalPosition.bottom } } }
-        };
+        } };
+
         placeInfo.push_back(placeInfoTemp); //append to main json
         placeInfoTemp.clear();// clear temp
     }
+
     LayFile << placeInfo; // add to json file
 
     LayFile.close();
+}
+
+void WindowsApp::WinWinViewSaved() {
+    std::wstring WinWinLayoutsFolder = L"SavedLayouts/";
+    std::wstring layoutName;
+    int xPos = 350;
+    int yPos = 0;
+    int i = 0;
+    for (const auto& WinWinLayoutsFile : std::filesystem::directory_iterator(WinWinLayoutsFolder)) {
+        layoutName = WinWinLayoutsFile.path().filename();
+        layoutButtons.push_back(CreateWindowEx(
+            0,
+            L"BUTTON",
+            layoutName.c_str(),
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            xPos, yPos, 110, 30,
+            m_hwnd,
+            (HMENU)EXECUTE_LAYOUT,
+            (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+            NULL));
+        i++;
+        if (i >= 3) {
+            xPos += 110;
+            yPos = 0;
+            i = 0;
+        }
+        else {
+            yPos += 30;
+        }
+        SetWindowPos(m_hwnd, NULL, 0, 0, xPos + 150, 175, SWP_NOMOVE);
+    }
+    
 }
 
 HRESULT WindowsApp::HandleCreate() {
@@ -217,6 +334,10 @@ HRESULT WindowsApp::HandleCreate() {
     }
     CreateControlOpts(); // Create control buttons that are children of m_hwnd
     // Enumerate through active windows and create controls
+    PrintActiveWindows();
+    for (WindowControl* ctrl : WindowsVector) {
+        SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW);
+    }
     int ControlY = 400;
     SetWindowPos(m_hControlWindow, NULL, 0, 0, 500, ControlY, SW_SHOWNORMAL); // resize control window
     SCROLLINFO si; // Set scroll information
@@ -252,6 +373,17 @@ void WindowsApp::CreateControlOpts() {
         120, 20, 110, 30,
         m_hwnd,
         (HMENU)SAVE_LAYOUT,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
+    m_hSavedConfigs = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"SAVED CONFIGS",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        230, 20, 110, 30,
+        m_hwnd,
+        (HMENU)VIEW_SAVED_CONFIGS,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
 

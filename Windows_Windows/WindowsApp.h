@@ -49,6 +49,8 @@ public:
     // Called when SAVE LAYOUT button is pressed. Saves the current layout to a json file
     void WinWinSaveLayout();
 
+    void WinWinViewSaved();
+
 private:
     // Main control panel window handle
     HWND m_hControlOptions;
@@ -62,6 +64,10 @@ private:
     HWND m_hShowWindows;
 
     HWND m_hHideWindows;
+
+    HWND m_hSavedConfigs;
+
+    HWND m_hHideSavedConfigs;
 
     // Called upon window creation. Creates all child windows of m_hwnd
     HRESULT HandleCreate();
