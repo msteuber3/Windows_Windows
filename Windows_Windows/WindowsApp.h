@@ -19,6 +19,8 @@
 #include <shellapi.h>
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include <locale>
+#include <codecvt>
 
 class WindowsApp : public BaseWindow<WindowsApp> {
 
@@ -50,6 +52,40 @@ public:
     void WinWinSaveLayout();
 
     void WinWinViewSaved();
+
+    void ExecuteSaved(std::wstring json);
+
+    struct SavedWindow {
+        SavedWindow(std::string process,
+            UINT flags,
+            UINT showCmd,
+            POINT ptMinPosition,
+            POINT ptMaxPosition,
+            RECT rcNormalPosition) {
+            m_process = process;
+            m_flags = flags;
+            m_showCmd = showCmd;
+            m_ptMinPosition = ptMinPosition;
+            m_ptMaxPosition = ptMaxPosition;
+            m_rcNormalPosition = rcNormalPosition;
+        };
+        std::string m_process;
+        UINT m_flags;
+        UINT m_showCmd;
+        POINT m_ptMinPosition;
+        POINT m_ptMaxPosition;
+        RECT m_rcNormalPosition;
+        WINDOWPLACEMENT* getWinPlacement() {
+            WINDOWPLACEMENT placement;
+            placement.showCmd = m_showCmd;
+            placement.flags = m_flags;
+            placement.length = sizeof(WINDOWPLACEMENT);
+            placement.ptMaxPosition = m_ptMinPosition;
+            placement.ptMaxPosition = m_ptMaxPosition;
+            placement.rcNormalPosition = m_rcNormalPosition;
+            return &placement;
+        }
+    };
 
 private:
     // Main control panel window handle

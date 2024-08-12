@@ -4,7 +4,8 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
-// 08/01/2024 MS-24.01.02.09 Added controls for viewing saved layouts, updated json folder to include multiple files for different layouts
+// 08/12/2024 MS-24.01.03.01 Added functionality to executing saved layouts
+// 08/01/2024 MS-24.01.02.10 Added controls for viewing saved layouts, updated json folder to include multiple files for different layouts
 // 08/01/2024 MS-24.01.02.09 Added dropdown menu to hide active window list
 // 08/01/2024 MS-24.01.02.08 Added save layout button (saves current layout in a json file)
 // 08/01/2024 MS-24.01.02.07 Added stack windows button (broke scrolling again)
@@ -114,7 +115,7 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                     DestroyWindow(layoutButton);
                 }
                 DestroyWindow(m_hHideSavedConfigs);
-                m_hSavedConfigs = CreateWindowEx(
+                m_hSavedConfigs = CreateWindowExW(
                     0,
                     L"BUTTON",
                     L"SAVED CONFIGS",
@@ -133,7 +134,7 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 SetWindowPos(m_hControlWindow, NULL, 0, 500, 500, ControlY, SW_SHOWNORMAL); // resize control window
                 SetWindowPos(m_hwnd, NULL, 0, 0, 500, ControlY, SWP_NOMOVE);
                 DestroyWindow(m_hShowWindows);
-                m_hHideWindows = CreateWindowEx(
+                m_hHideWindows = CreateWindowExW(
                     0,
                     L"BUTTON",
                     L"^",
@@ -166,6 +167,10 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(m_hHideWindows);
 
                 break;
+            case EXECUTE_LAYOUT:
+                wchar_t jsonFile[256];
+                GetWindowText((HWND)lParam, jsonFile, 256);
+                ExecuteSaved(jsonFile);
             }
         }
         break;
@@ -196,7 +201,6 @@ void WindowsApp::StackWindows()
         stackPos += 50; 
     }
 }
-
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
@@ -253,17 +257,24 @@ void WindowsApp::WinWinSaveLayout()
     DWORD processId;
     WCHAR path[MAX_PATH] = L"";
     HANDLE hProcess;
-
+    RECT rect;
     for (WindowControl* ctrl : WindowsVector) {
 
         GetWindowPlacement(ctrl->GetInstanceHandle(), &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
                                                                             // Put into WINDOWPLACEMENT object 
+        GetWindowRect(ctrl->GetInstanceHandle(), &rect);
+        pInstancePlacement.rcNormalPosition.right = rect.right;
+        pInstancePlacement.rcNormalPosition.left = rect.left;
+        pInstancePlacement.rcNormalPosition.top = rect.top;
+        pInstancePlacement.rcNormalPosition.bottom = rect.bottom;
+
         GetWindowThreadProcessId(ctrl->GetInstanceHandle(), &processId); 
         hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executible associated with window handle
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
         CloseHandle(hProcess);
 
-        placeInfoTemp = { {"process", std::wstring(path).c_str(),// Translate WINDOWPLACEMENT to json, stick the process in the front
+        placeInfoTemp = { {"process", std::wstring(path).c_str()},// Translate WINDOWPLACEMENT to json, stick the process in the front
+            {"length", pInstancePlacement.length},
             {"flags", pInstancePlacement.flags},
         {"showCmd", pInstancePlacement.showCmd },
         {"ptMinPosition",
@@ -277,7 +288,7 @@ void WindowsApp::WinWinSaveLayout()
                { "right", pInstancePlacement.rcNormalPosition.right },
                { "top", pInstancePlacement.rcNormalPosition.top },
                { "bottom", pInstancePlacement.rcNormalPosition.bottom } } }
-        } };
+        };
 
         placeInfo.push_back(placeInfoTemp); //append to main json
         placeInfoTemp.clear();// clear temp
@@ -316,6 +327,83 @@ void WindowsApp::WinWinViewSaved() {
             yPos += 30;
         }
         SetWindowPos(m_hwnd, NULL, 0, 0, xPos + 150, 175, SWP_NOMOVE);
+    }
+    
+}
+
+void WindowsApp::ExecuteSaved(std::wstring json) {
+    std::wstring jsonFile = L"SavedLayouts/" + json;
+    if (!std::filesystem::exists(jsonFile)) { // Check if it exists
+        return;
+    }
+
+    // So here I want to get every layout from the json file, check which processess are open, put the matching ones in the right place, and minimize the others
+    // So from the json I need a vector of structs 
+    // And I have my vector of open windows
+    // Iterate over open windows and then iterate over vector of structs
+    std::vector<SavedWindow*> SavedWindows;
+  
+    DWORD processId;
+    WCHAR path[MAX_PATH] = L"";
+    HANDLE hProcess;
+
+    std::fstream LayFile;
+    LayFile.open(jsonFile, std::ios::in);
+    nlohmann::json Doc{ nlohmann::json::parse(LayFile) };
+    int i = 0;
+    for (auto& window : Doc.items()) {
+        std::string process = Doc[i].at("process");
+        UINT flags = Doc[i].at("flags");
+        UINT length = Doc[i].at("length");
+        UINT showCmd = Doc[i].at("showCmd");
+        POINT minPos;
+        UINT minPosX = Doc[i].at("ptMinPosition").at("x");
+        UINT minPosY = Doc[i].at("ptMinPosition").at("y");
+        minPos.x = minPosX;
+        minPos.y = minPosY;
+        POINT maxPos;
+        UINT maxPosX = Doc[i].at("ptMaxPosition").at("x");
+        UINT maxPosY = Doc[i].at("ptMaxPosition").at("y");
+        maxPos.x = maxPosX;
+        maxPos.y = maxPosY;
+        RECT rcNormalPos;
+        rcNormalPos.left = Doc[i].at("rcNormalPosition").at("left");
+        rcNormalPos.right = Doc[i].at("rcNormalPosition").at("right");
+        rcNormalPos.top = Doc[i].at("rcNormalPosition").at("top");
+        rcNormalPos.bottom = Doc[i].at("rcNormalPosition").at("bottom");
+
+        SavedWindows.push_back(new SavedWindow(
+            process,
+            flags,
+            showCmd,
+            minPos,
+            maxPos,
+            rcNormalPos));
+        i++;
+    }
+    for (WindowControl* ctrl : WindowsVector) {
+        GetWindowThreadProcessId(ctrl->GetInstanceHandle(), &processId);
+        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executible associated with window handle
+        GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
+        CloseHandle(hProcess);
+        for (SavedWindow* window : SavedWindows) {
+            int wideStrSize = MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, nullptr, 0);
+            std::wstring convertedWideStr(wideStrSize, L'/0');
+            MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, &convertedWideStr[0], wideStrSize);
+            convertedWideStr.erase(std::remove(convertedWideStr.begin(), convertedWideStr.end(), L'\0'), convertedWideStr.end());
+            std::wstring pathWstring(path);
+            if (pathWstring == convertedWideStr) {
+                WINDOWPLACEMENT placement;
+                placement.length = sizeof(WINDOWPLACEMENT);
+                placement.showCmd = window->m_showCmd;
+                placement.flags = window->m_flags;
+                placement.ptMaxPosition = window->m_ptMinPosition;
+                placement.ptMaxPosition = window->m_ptMaxPosition;
+                placement.rcNormalPosition = window->m_rcNormalPosition;
+
+                SetWindowPlacement(ctrl->GetInstanceHandle(), &placement);
+            }
+        }
     }
     
 }

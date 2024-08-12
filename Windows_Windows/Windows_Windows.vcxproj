@@ -140,7 +140,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="SavedLayouts\WinWinSavedLayouts.json" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Windows_Windows.rc" />
