@@ -86,6 +86,7 @@ void WindowControl::Create()
         (HMENU)CLOSE,
         wc.hInstance,
         NULL);
+
     SetWindowLongPtrW(m_hControlPanel, GWLP_USERDATA, (LONG_PTR)(m_InstanceHandle));
     SetWindowLongPtrW(m_Minimize, GWLP_USERDATA, (LONG_PTR)(m_InstanceHandle));
     SetWindowLongPtrW(m_Maximize, GWLP_USERDATA, (LONG_PTR)(m_InstanceHandle));

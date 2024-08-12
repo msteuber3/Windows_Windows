@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 08/12/2024 MS-24.01.03.02 Fixed bugs surrounding printing active windows
 // 08/12/2024 MS-24.01.03.01 Added functionality to executing saved layouts
 // 08/01/2024 MS-24.01.02.10 Added controls for viewing saved layouts, updated json folder to include multiple files for different layouts
 // 08/01/2024 MS-24.01.02.09 Added dropdown menu to hide active window list
@@ -23,13 +24,14 @@
 #include <Psapi.h>
 #include "resource.h"
 
-#define STACK 1
+#define CASCADE 1
 #define SAVE_LAYOUT 2
 #define SHOW_ACTIVE_WINDOWS 3
 #define HIDE_ACTIVE_WINDOWS 4
 #define VIEW_SAVED_CONFIGS 5
 #define EXECUTE_LAYOUT 6
 #define HIDE_SAVED_CONFIGS 7
+#define STACK 8
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -90,6 +92,9 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             int id = LOWORD(wParam);   //Extract button id from the wParam and dispatch accordingly
             int ControlY = ((WindowsVector.size() + 1) * 100) + 75;
             switch (id) {
+            case CASCADE:
+                CascadeWindows();
+                break;
             case STACK:
                 StackWindows();
                 break;
@@ -129,8 +134,9 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 break;
             case SHOW_ACTIVE_WINDOWS:
                   // Enumerate through active windows and create controls
+                WindowsVector.clear();
                 PrintActiveWindows();
-                ControlY = ((WindowsVector.size() + 1) * 100) + 75;
+                ControlY = ((WindowsVector.size() + 1) * 100) + 87;
                 SetWindowPos(m_hControlWindow, NULL, 0, 500, 500, ControlY, SW_SHOWNORMAL); // resize control window
                 SetWindowPos(m_hwnd, NULL, 0, 0, 500, ControlY, SWP_NOMOVE);
                 DestroyWindow(m_hShowWindows);
@@ -193,12 +199,22 @@ void WindowsApp::PrintActiveWindows() {
 
 void WindowsApp::StackWindows()
 {   
+    int stackPos = 0;
+    int stackFactorY = GetSystemMetrics(SM_CYSCREEN) / WindowsVector.size();
+    for (WindowControl* ctrl : WindowsVector) {
+        ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);
+        SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPos, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
+        stackPos += stackFactorY;
+    }
+}
+
+void WindowsApp::CascadeWindows() {
     int stackPos = 10;
     for (WindowControl* ctrl : WindowsVector) { //Iterate through all windows in WindowsVector (all open windows)
         ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);  // Set each window to normal mode (unmax/unmin)
         SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, stackPos, stackPos, 750, 750, NULL); // Bring current window to front
         SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, stackPos, stackPos, 750, 750, NULL); // Remove "TOPMOST" flag
-        stackPos += 50; 
+        stackPos += 50;
     }
 }
 
@@ -442,12 +458,23 @@ HRESULT WindowsApp::HandleCreate() {
 }
 
 void WindowsApp::CreateControlOpts() {
+    m_hCascadeButton = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"CASCADE",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        10, 20, 110, 30,
+        m_hwnd,
+        (HMENU)CASCADE,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
     m_hStackButton = CreateWindowEx(
         0,
         L"BUTTON",
         L"STACK",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        10, 20, 110, 30,
+        10, 50, 110, 30,
         m_hwnd,
         (HMENU)STACK,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),

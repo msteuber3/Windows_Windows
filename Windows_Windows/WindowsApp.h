@@ -48,6 +48,8 @@ public:
     // Called when STACK button is pressed
     void StackWindows();
 
+    void CascadeWindows();
+
     // Called when SAVE LAYOUT button is pressed. Saves the current layout to a json file
     void WinWinSaveLayout();
 
@@ -90,6 +92,8 @@ public:
 private:
     // Main control panel window handle
     HWND m_hControlOptions;
+
+    HWND m_hCascadeButton;
 
     // Stack button window handle
     HWND m_hStackButton;
