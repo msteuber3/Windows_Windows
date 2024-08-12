@@ -4,6 +4,7 @@
 //===============================================
 // BaseWindowTemplate.cpp
 // ----------------------------------------------
+// 08/12/2024 MS-24.01.03.04 - Removed invisible OS windows from windows list
 // 07/25/2024 MS-24.0.02.04 - Added Window enumeration function to access all active windows 
 // 07/25/2024 MS-24.01.01.01 created
 //-----------------------------------------------
@@ -88,6 +89,9 @@ public:
         WCHAR windowTitle[256];
         if (GetParent(hwnd) == NULL && IsWindowVisible(hwnd)) {
             if (GetWindowText(hwnd, windowTitle, sizeof(windowTitle) / sizeof(windowTitle[0])) == 0) {
+                return TRUE;
+            }
+            if (std::wstring(windowTitle) == L"Program Manager" || std::wstring(windowTitle) == L"Windows Input Experience") {
                 return TRUE;
             }
             oss << L"Window Handle: " << hwnd << L" Title: " << windowTitle << "\r\n";

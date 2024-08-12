@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 08/12/2024 MS-24.01.03.03 Added Windows sstack feature, renamed old stack to cascade
 // 08/12/2024 MS-24.01.03.02 Fixed bugs surrounding printing active windows
 // 08/12/2024 MS-24.01.03.01 Added functionality to executing saved layouts
 // 08/01/2024 MS-24.01.02.10 Added controls for viewing saved layouts, updated json folder to include multiple files for different layouts
