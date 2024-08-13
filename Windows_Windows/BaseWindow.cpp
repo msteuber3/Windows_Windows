@@ -17,6 +17,9 @@
 #include <sstream>
 #include <vector>
 #include "WindowControl.h"
+#include "resource.h"
+
+#define IDM_MENURESOURCE 1
 
 template <class DERIVED_TYPE>
 class BaseWindow
@@ -64,11 +67,13 @@ public:
         HMENU hMenu = 0
     )
     {
+
         WNDCLASS wc = { 0 };
 
         wc.lpfnWndProc = DERIVED_TYPE::WindowProc;
         wc.hInstance = GetModuleHandle(NULL);
         wc.lpszClassName = ClassName();
+        wc.lpszMenuName = MAKEINTRESOURCE(IDR_MENU1);
 
         RegisterClass(&wc);
 
@@ -76,7 +81,7 @@ public:
             dwExStyle, ClassName(), lpWindowName, dwStyle, x, y,
             nWidth, nHeight, hWndParent, hMenu, GetModuleHandle(NULL), this
         );
-
+     
         return (m_hwnd ? TRUE : FALSE);
     }
 

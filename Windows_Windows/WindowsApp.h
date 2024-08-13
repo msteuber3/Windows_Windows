@@ -21,6 +21,7 @@
 #include <fstream>
 #include <locale>
 #include <codecvt>
+#include <filesystem>
 
 class WindowsApp : public BaseWindow<WindowsApp> {
 
@@ -109,6 +110,8 @@ private:
 
     HWND m_hHideSavedConfigs;
 
+    HWND m_hSaveDesktopLayout;
+
     // Called upon window creation. Creates all child windows of m_hwnd
     HRESULT HandleCreate();
 
@@ -120,5 +123,7 @@ private:
 
     // Called on window scroll
     void HandleScroll(WPARAM wParam);
+
+    void SaveDesktopLayout();
 
 };
