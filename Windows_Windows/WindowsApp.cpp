@@ -154,8 +154,8 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 ControlY = ((WindowsVector.size() + 1) * 100) + 102;
                 RECT prevRect;
                 GetWindowRect(m_hwnd, &prevRect);
-                SetWindowPos(m_hControlWindow, NULL, 0, 0, prevRect.right - prevRect.left, ControlY, SW_SHOWNORMAL); // resize control window
                 SetWindowPos(m_hwnd, NULL, 0, 0, prevRect.right - prevRect.left, ControlY, SWP_NOMOVE);
+                SetWindowPos(m_hControlWindow, NULL, 0, 0, prevRect.right - prevRect.left, ControlY, SW_SHOWNORMAL); // resize control window
                 DestroyWindow(m_hShowWindows);
 
                 m_hHideWindows = CreateWindowExW(
@@ -192,13 +192,12 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                     (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
                     NULL);
                 DestroyWindow(m_hHideWindows);
-
                 break;
             case EXECUTE_LAYOUT:
                 wchar_t jsonFile[256];
                 GetWindowText((HWND)lParam, jsonFile, 256);
                 ExecuteSaved(jsonFile);
-
+                break;
             case SAVE_DESKTOP_LAYOUT:
                 SaveDesktopLayout();
                 break;
@@ -223,13 +222,34 @@ void WindowsApp::PrintActiveWindows() {
 }
 
 void WindowsApp::StackWindows()
-{   
-    int stackPos = 0;
-    int stackFactorY = GetSystemMetrics(SM_CYSCREEN) / WindowsVector.size();
-    for (WindowControl* ctrl : WindowsVector) {
-        ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);
-        SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPos, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
-        stackPos += stackFactorY;
+{
+    int stackFactorY;
+    int stackPosy = 0;
+    int stackPosx = 0;
+    int i = 0;
+    if (WindowsVector.size() <= 4) {
+        stackFactorY = GetSystemMetrics(SM_CYSCREEN) / WindowsVector.size();
+        for (WindowControl* ctrl : WindowsVector) {
+            ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);
+            SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
+            stackPosy += stackFactorY;
+        }
+    }
+    if (4 < WindowsVector.size() <= 8) {
+        stackFactorY = GetSystemMetrics(SM_CYSCREEN) / 4;
+        for (WindowControl* ctrl : WindowsVector) {
+            ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);
+            if (i > 4) {
+                stackPosy = 0;
+                SetWindowPos(ctrl->GetInstanceHandle(), NULL, GetSystemMetrics(SM_CXSCREEN) / 2, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorY, NULL);
+            }            
+            else {
+                SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorY, NULL);
+            }
+            stackPosy += stackFactorY;
+            i++;
+            
+        }
     }
 }
 
@@ -371,7 +391,7 @@ void WindowsApp::WinWinViewSaved() {
         }
     
 
-        SetWindowPos(m_hwnd, NULL, 0, 0, xPos + 20, prevRect5.bottom - prevRect5.top, SWP_NOMOVE);
+        SetWindowPos(m_hwnd, NULL, 0, 0, xPos + 175, prevRect5.bottom - prevRect5.top, SWP_NOMOVE);
     }
     
 }
@@ -545,7 +565,7 @@ void WindowsApp::CreateControlOpts() {
     m_hSaveDesktopLayout = CreateWindowEx(
         0,
         L"BUTTON",
-        L"SAVE DESKTOP LAYOUT",
+        L"SAVE ICONS",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
         120, 50, 110, 30,
         m_hwnd,
