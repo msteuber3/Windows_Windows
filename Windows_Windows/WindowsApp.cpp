@@ -202,7 +202,10 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 SaveDesktopLayout();
                 break;
             }
-}
+            RECT ultPrevRect;
+            GetWindowRect(m_hwnd, &ultPrevRect);
+            SetWindowPos(m_hwnd, HWND_TOPMOST, ultPrevRect.left, ultPrevRect.top, ultPrevRect.right - ultPrevRect.left, ultPrevRect.bottom - ultPrevRect.top, NULL); // Bring current window to front
+        }
         break;
     case WM_CLOSE:
         if (m_hwnd != NULL) {

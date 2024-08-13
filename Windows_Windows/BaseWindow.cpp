@@ -96,7 +96,10 @@ public:
             if (GetWindowText(hwnd, windowTitle, sizeof(windowTitle) / sizeof(windowTitle[0])) == 0) {
                 return TRUE;
             }
-            if (std::wstring(windowTitle) == L"Program Manager" || std::wstring(windowTitle) == L"Windows Input Experience") {
+            if ((std::wstring(windowTitle) == L"Program Manager" || std::wstring(windowTitle) == L"Windows Input Experience") && !IsWindowVisible(hwnd)) {
+                return TRUE;
+            }
+            if (std::wstring(windowTitle) == L"Windows Window Extension Window") {
                 return TRUE;
             }
             oss << L"Window Handle: " << hwnd << L" Title: " << windowTitle << "\r\n";
