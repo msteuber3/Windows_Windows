@@ -4,6 +4,8 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 08/16/2024 MS-24.01.03.06 Refactored
+// 08/15/2024 MS-24.01.03.05 Fixed windows stack
 // 08/13/2024 MS-24.01.03.04 Added (currently useless) menu, added (currently useless) save Desktop Icons button, fixed execute layout button
 // 08/13/2024 MS-24.01.03.03 Fixed UI bugs
 // 08/12/2024 MS-24.01.03.03 Added Windows sstack feature, renamed old stack to cascade
@@ -37,15 +39,22 @@
 #define HIDE_SAVED_CONFIGS 7
 #define STACK 8
 #define SAVE_DESKTOP_LAYOUT 9
+#define NEXT_STACK 10
+#define PREV_STACK 11
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 WindowsApp::WindowsApp() {}
 
+///   GLOBALS   ///
 std::wostringstream WindowsApp::oss; //ostream string that contains window control panel titles
 HWND WindowsApp::WindowHandle; // Window handle that holds info for creation of the windows vector
 static std::wstring userInput;
 std::vector<HWND> layoutButtons;
+PCWSTR WindowsApp::ClassName() const { return L"Windows Window Extension"; }
+int stackIndex;
+
+///   CALLBACK FUNCTIONS   ///
 
 void WindowsApp::RunMessageLoop() {
     MSG msg;
@@ -55,29 +64,6 @@ void WindowsApp::RunMessageLoop() {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
-}
-
-PCWSTR WindowsApp::ClassName() const { return L"Windows Window Extension"; }
-
-HRESULT WindowsApp::Initialize()
-{
-    HRESULT hr;
-    // See BaseWindow.cpp
-    hr = this->Create(L"Windows Window Extension Window",
-        WS_OVERLAPPEDWINDOW | WS_VSCROLL,
-        0,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        430,
-        200
-    );
-    HMENU hMenu = LoadMenu(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_MENU1));
-    if (hMenu == NULL) {
-        MessageBoxW(NULL, L"Failed to load menu.", L"Error", MB_OK | MB_ICONERROR);
-        return 0;
-    }
-    SetMenu(m_hwnd, hMenu);
-    return hr;
 }
 
 LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -107,6 +93,14 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 break;
             case STACK:
                 StackWindows();
+                break;
+            case NEXT_STACK:
+                stackIndex++;
+                StackWindowsCallback();
+                break;
+            case PREV_STACK:
+                stackIndex--;
+                StackWindowsCallback();
                 break;
             case SAVE_LAYOUT:
                 WinWinSaveLayout();
@@ -219,53 +213,6 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 }
 
-void WindowsApp::PrintActiveWindows() {
-    EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(this)); // Enumerate through the windows with this callback function. 
-                                                                  //EnumWindowsProc is a custom method, see BaseWindow.cpp
-}
-
-void WindowsApp::StackWindows()
-{
-    int stackFactorY;
-    int stackPosy = 0;
-    int stackPosx = 0;
-    int i = 0;
-    if (WindowsVector.size() <= 4) {
-        stackFactorY = GetSystemMetrics(SM_CYSCREEN) / WindowsVector.size();
-        for (WindowControl* ctrl : WindowsVector) {
-            ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);
-            SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
-            stackPosy += stackFactorY;
-        }
-    }
-    if (4 < WindowsVector.size() <= 8) {
-        stackFactorY = GetSystemMetrics(SM_CYSCREEN) / 4;
-        for (WindowControl* ctrl : WindowsVector) {
-            ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);
-            if (i > 4) {
-                stackPosy = 0;
-                SetWindowPos(ctrl->GetInstanceHandle(), NULL, GetSystemMetrics(SM_CXSCREEN) / 2, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorY, NULL);
-            }            
-            else {
-                SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorY, NULL);
-            }
-            stackPosy += stackFactorY;
-            i++;
-            
-        }
-    }
-}
-
-void WindowsApp::CascadeWindows() {
-    int stackPos = 10;
-    for (WindowControl* ctrl : WindowsVector) { //Iterate through all windows in WindowsVector (all open windows)
-        ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);  // Set each window to normal mode (unmax/unmin)
-        SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, stackPos, stackPos, 750, 750, NULL); // Bring current window to front
-        SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, stackPos, stackPos, 750, 750, NULL); // Remove "TOPMOST" flag
-        stackPos += 50;
-    }
-}
-
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
     case WM_INITDIALOG:
@@ -289,6 +236,202 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
     return FALSE;
 }
 
+///   INITIALIZE   ///
+
+HRESULT WindowsApp::Initialize()
+{
+    HRESULT hr;
+    // See BaseWindow.cpp
+    hr = this->Create(L"Windows Window Extension Window",
+        WS_OVERLAPPEDWINDOW | WS_VSCROLL,
+        0,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
+        430,
+        200
+    );
+    HMENU hMenu = LoadMenu(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_MENU1));
+    if (hMenu == NULL) {
+        MessageBoxW(NULL, L"Failed to load menu.", L"Error", MB_OK | MB_ICONERROR);
+        return 0;
+    }
+    SetMenu(m_hwnd, hMenu);
+    return hr;
+}
+
+HRESULT WindowsApp::HandleCreate() {
+    HRESULT hr = S_OK;
+    if (m_hwnd && m_hwnd != 0) {
+        ShowWindow(m_hwnd, SW_SHOWNORMAL);
+        m_hControlWindow = CreateWindowEx( // Create window that holds all WindowControl control panels
+            0, TEXT("STATIC"), NULL,
+            WS_CHILD | WS_VISIBLE | SS_LEFT ,
+            0, 0, 500, 9000, m_hwnd, NULL, (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE), NULL);
+
+        UpdateWindow(m_hwnd);
+       
+    }
+    CreateControlOpts(); // Create control buttons that are children of m_hwnd
+    // Enumerate through active windows and create controls
+    PrintActiveWindows();
+    for (WindowControl* ctrl : WindowsVector) {
+        SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW);
+    }
+    int ControlY = 400;
+    SetWindowPos(m_hControlWindow, NULL, 0, 0, 500, ControlY, SW_SHOWNORMAL); // resize control window
+    SCROLLINFO si; // Set scroll information
+    si.cbSize = sizeof(SCROLLINFO);
+    si.fMask = SIF_RANGE | SIF_PAGE;
+    si.nMin = 0;
+    si.nMax = ControlY;
+    si.nPage = 1000;
+    if (m_hwnd != 0) {
+        SetScrollInfo(m_hwnd, SB_VERT, &si, TRUE);
+    }
+
+    return hr;
+}
+
+void WindowsApp::CreateControlOpts() {
+    m_hCascadeButton = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"CASCADE",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        10, 20, 110, 30,
+        m_hwnd,
+        (HMENU)CASCADE,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
+    m_hStackButton = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"STACK",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        10, 50, 110, 30,
+        m_hwnd,
+        (HMENU)STACK,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
+    m_hSaveWinLayout = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"SAVE LAYOUT",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        120, 20, 110, 30,
+        m_hwnd,
+        (HMENU)SAVE_LAYOUT,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
+    m_hSavedConfigs = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"LAYOUTS",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        230, 20, 110, 30,
+        m_hwnd,
+        (HMENU)VIEW_SAVED_CONFIGS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
+    m_hShowWindows = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"V",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD,
+        10, 100, 400, 30,
+        m_hwnd,
+        (HMENU)SHOW_ACTIVE_WINDOWS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
+    m_hSaveDesktopLayout = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"SAVE ICONS",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        120, 50, 110, 30,
+        m_hwnd,
+        (HMENU)SAVE_DESKTOP_LAYOUT,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL
+        );
+
+}
+
+///   HANDLE BASIC WINDOW EVENTS   ///
+
+void WindowsApp::HandleScroll(WPARAM wParam) {
+    int scrollCode = LOWORD(wParam);
+    int nPos;
+    int nOldPos;
+    SCROLLINFO si;
+    si.cbSize = sizeof(SCROLLINFO);
+    si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
+    GetScrollInfo(m_hwnd, SB_VERT, &si);
+
+    nOldPos = si.nPos;
+
+    switch (scrollCode) {
+        case SB_TOP:            
+            nPos = si.nMin; 
+            break;
+        case SB_BOTTOM:         
+            nPos = si.nMax; 
+            break;
+        case SB_LINEUP:
+            nPos = si.nPos - 1;
+            break;
+        case SB_LINEDOWN:
+            nPos = si.nPos + 1;
+            break;
+        case SB_THUMBPOSITION:
+            nPos = si.nTrackPos;
+            break;
+        default:
+        case SB_THUMBTRACK:
+            nPos = si.nPos;
+            break;
+    }
+    SetScrollPos(m_hwnd, SB_VERT, nPos, TRUE);
+
+    nPos = GetScrollPos(m_hwnd, SB_VERT);
+
+    ScrollWindowEx(m_hwnd, 0, (int)(nOldPos - nPos) * 1,
+        NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_SCROLLCHILDREN);
+
+
+
+    UpdateWindow(m_hwnd);
+
+}
+
+void WindowsApp::HandlePaint() {
+    PAINTSTRUCT ps;
+    HDC hdc;
+    RECT rect;
+    GetClientRect(m_hwnd, &rect);
+    hdc = BeginPaint(m_hwnd, &ps);
+    SetTextColor(hdc, RGB(0, 0, 0));
+    SetBkMode(hdc, TRANSPARENT);
+    EndPaint(m_hwnd, &ps);
+
+}
+
+void WindowsApp::HandleResize(){
+    RECT resizeRect;
+    if (m_hwnd != NULL) {
+        GetWindowRect(m_hwnd, &resizeRect);
+        SetWindowPos(m_hControlWindow, NULL, 0, 0, resizeRect.right, resizeRect.bottom, NULL);
+        UpdateWindow(m_hwnd);
+    }
+}
+
+///   WINDOW RESOURCES   ///
+
 std::wstring GetUserInput(HINSTANCE hInstance) {
     userInput.clear(); // Clear previous input
     if (DialogBox(hInstance, MAKEINTRESOURCE(IDD_SIMPLE_INPUT_DIALOG), NULL, DialogProc) == IDOK) {
@@ -296,6 +439,126 @@ std::wstring GetUserInput(HINSTANCE hInstance) {
     }
     return L"";
 }
+
+///   HANDLE WINDOWS_WINDOWS EVENTS   ///
+ //   PRINT ACTIVE WINDOWS   //  
+
+void WindowsApp::PrintActiveWindows() {
+    EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(this)); // Enumerate through the windows with this callback function. 
+                                                                  //EnumWindowsProc is a custom method, see BaseWindow.cpp
+}
+
+ //   STACK WINDOWS   //
+
+void WindowsApp::StackWindows()
+{
+    if (WindowsVector.size() <= 4) {
+        StackFourOrLess(WindowsVector);
+    }
+    else if (4 < WindowsVector.size() >= 8) {
+        StackFiveToEight(WindowsVector);
+    }
+    else if (WindowsVector.size() > 8) {
+        int lastVector = WindowsVector.size() % 8;
+        int subVectorCount = (WindowsVector.size() - WindowsVector.size() % 8) + (lastVector == 0 ? 0 : 1);
+        stackIndex = 0;
+        StackWindowsCallback();
+        m_hNextStack = CreateWindowEx(
+            0,
+            L"BUTTON",
+            L"NEXT STACK >",
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD,
+            120, 80, 110, 30,
+            m_hwnd,
+            (HMENU)NEXT_STACK,
+            (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+            NULL);
+        m_hPrevStack = CreateWindowEx(
+            0,
+            L"BUTTON",
+            L"< PREV STACK",
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD,
+            10, 80, 110, 30,
+            m_hwnd,
+            (HMENU)PREV_STACK,
+            (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+            NULL);
+    }
+}
+
+void WindowsApp::StackWindowsCallback()
+{
+    std::vector<WindowControl*> SubVector;
+    for (int i = 0; i < 8; i++) {
+        if (WindowsVector.size() <= (stackIndex * 8) + i) {
+            break;
+        }
+        SubVector.push_back(WindowsVector[(stackIndex * 8) + i]);
+    }
+    if (SubVector.size() <= 4) {
+        StackFourOrLess(SubVector);
+    }
+    else if (SubVector.size() <= 8) {
+        StackFiveToEight(SubVector);
+    }
+    SubVector.clear();
+}
+
+void WindowsApp::StackFourOrLess(std::vector<WindowControl*> SubVector) {
+    int stackFactorY;
+    int stackPosy = 0;
+    int i = 0;
+    stackFactorY = GetSystemMetrics(SM_CYSCREEN) / SubVector.size();
+    for (WindowControl* ctrl : SubVector) {
+        ShowWindow(ctrl->GetInstanceHandle(), SW_RESTORE);
+        SendMessage(ctrl->GetInstanceHandle(), WM_SYSCOMMAND, SC_RESTORE, 0);
+        SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
+        stackPosy += stackFactorY;
+        i++;
+    }
+}
+
+void WindowsApp::StackFiveToEight(std::vector<WindowControl*>SubVector) {
+    int stackFactorYLeft;
+    int stackFactorYRight;
+    int stackPosy = 0;
+    int i = 0;
+    stackFactorYLeft = GetSystemMetrics(SM_CYSCREEN) / ceil(float(SubVector.size()) / float(2));
+    stackFactorYRight = GetSystemMetrics(SM_CYSCREEN) / floor(float(SubVector.size()) / float(2));
+    for (WindowControl* ctrl : SubVector) {
+        ShowWindow(ctrl->GetInstanceHandle(), SW_RESTORE);
+        SendMessage(ctrl->GetInstanceHandle(), WM_SYSCOMMAND, SC_RESTORE, 0);
+        if (i >= ceil(float(SubVector.size()) / float(2))) {
+
+            SetWindowPos(ctrl->GetInstanceHandle(), NULL, GetSystemMetrics(SM_CXSCREEN) / 2, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorYRight, NULL);
+            stackPosy += stackFactorYRight;
+        }
+
+        else {
+            SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorYLeft, NULL);
+            stackPosy += stackFactorYLeft;
+        }
+        i++;
+        if (i == ceil(float(SubVector.size()) / float(2))) {
+            stackPosy = 0;
+        }
+    }
+}
+
+ //   CASCADE WINDOWS   //
+
+void WindowsApp::CascadeWindows() {
+    int stackPos = 10;
+    for (WindowControl* ctrl : WindowsVector) { //Iterate through all windows in WindowsVector (all open windows)
+        SendMessage(ctrl->GetInstanceHandle(), WM_SYSCOMMAND, SC_RESTORE, 0);
+        ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);  // Set each window to normal mode (unmax/unmin)
+        SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, stackPos, stackPos, 750, 750, NULL); // Bring current window to front
+        SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, stackPos, stackPos, 750, 750, NULL); // Remove "TOPMOST" flag
+        stackPos += 50;
+    }
+}
+
+  //   SAVE WINDOW LAYOUTS   //
 
 void WindowsApp::WinWinSaveLayout()
 {
@@ -474,175 +737,6 @@ void WindowsApp::ExecuteSaved(std::wstring json) {
         }
     }
     
-}
-
-HRESULT WindowsApp::HandleCreate() {
-    HRESULT hr = S_OK;
-    if (m_hwnd && m_hwnd != 0) {
-        ShowWindow(m_hwnd, SW_SHOWNORMAL);
-        m_hControlWindow = CreateWindowEx( // Create window that holds all WindowControl control panels
-            0, TEXT("STATIC"), NULL,
-            WS_CHILD | WS_VISIBLE | SS_LEFT ,
-            0, 0, 500, 9000, m_hwnd, NULL, (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE), NULL);
-
-        UpdateWindow(m_hwnd);
-       
-    }
-    CreateControlOpts(); // Create control buttons that are children of m_hwnd
-    // Enumerate through active windows and create controls
-    PrintActiveWindows();
-    for (WindowControl* ctrl : WindowsVector) {
-        SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW);
-    }
-    int ControlY = 400;
-    SetWindowPos(m_hControlWindow, NULL, 0, 0, 500, ControlY, SW_SHOWNORMAL); // resize control window
-    SCROLLINFO si; // Set scroll information
-    si.cbSize = sizeof(SCROLLINFO);
-    si.fMask = SIF_RANGE | SIF_PAGE;
-    si.nMin = 0;
-    si.nMax = ControlY;
-    si.nPage = 1000;
-    if (m_hwnd != 0) {
-        SetScrollInfo(m_hwnd, SB_VERT, &si, TRUE);
-    }
-
-    return hr;
-}
-
-void WindowsApp::CreateControlOpts() {
-    m_hCascadeButton = CreateWindowEx(
-        0,
-        L"BUTTON",
-        L"CASCADE",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        10, 20, 110, 30,
-        m_hwnd,
-        (HMENU)CASCADE,
-        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-        NULL);
-
-    m_hStackButton = CreateWindowEx(
-        0,
-        L"BUTTON",
-        L"STACK",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        10, 50, 110, 30,
-        m_hwnd,
-        (HMENU)STACK,
-        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-        NULL);
-
-    m_hSaveWinLayout = CreateWindowEx(
-        0,
-        L"BUTTON",
-        L"SAVE LAYOUT",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        120, 20, 110, 30,
-        m_hwnd,
-        (HMENU)SAVE_LAYOUT,
-        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-        NULL);
-
-    m_hSavedConfigs = CreateWindowEx(
-        0,
-        L"BUTTON",
-        L"LAYOUTS",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        230, 20, 110, 30,
-        m_hwnd,
-        (HMENU)VIEW_SAVED_CONFIGS,
-        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-        NULL);
-
-    m_hShowWindows = CreateWindowEx(
-        0,
-        L"BUTTON",
-        L"V",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-        10, 100, 400, 30,
-        m_hwnd,
-        (HMENU)SHOW_ACTIVE_WINDOWS,
-        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-        NULL);
-
-    m_hSaveDesktopLayout = CreateWindowEx(
-        0,
-        L"BUTTON",
-        L"SAVE ICONS",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        120, 50, 110, 30,
-        m_hwnd,
-        (HMENU)SAVE_DESKTOP_LAYOUT,
-        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-        NULL
-        );
-
-}
-
-void WindowsApp::HandlePaint() {
-    PAINTSTRUCT ps;
-    HDC hdc;
-    RECT rect;
-    GetClientRect(m_hwnd, &rect);
-    hdc = BeginPaint(m_hwnd, &ps);
-    SetTextColor(hdc, RGB(0, 0, 0));
-    SetBkMode(hdc, TRANSPARENT);
-    EndPaint(m_hwnd, &ps);
-
-}
-
-void WindowsApp::HandleResize(){
-    RECT resizeRect;
-    if (m_hwnd != NULL) {
-        GetWindowRect(m_hwnd, &resizeRect);
-        SetWindowPos(m_hControlWindow, NULL, 0, 0, resizeRect.right, resizeRect.bottom, NULL);
-        UpdateWindow(m_hwnd);
-    }
-}
-
-void WindowsApp::HandleScroll(WPARAM wParam) {
-    int scrollCode = LOWORD(wParam);
-    int nPos;
-    int nOldPos;
-    SCROLLINFO si;
-    si.cbSize = sizeof(SCROLLINFO);
-    si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
-    GetScrollInfo(m_hwnd, SB_VERT, &si);
-
-    nOldPos = si.nPos;
-
-    switch (scrollCode) {
-        case SB_TOP:            
-            nPos = si.nMin; 
-            break;
-        case SB_BOTTOM:         
-            nPos = si.nMax; 
-            break;
-        case SB_LINEUP:
-            nPos = si.nPos - 1;
-            break;
-        case SB_LINEDOWN:
-            nPos = si.nPos + 1;
-            break;
-        case SB_THUMBPOSITION:
-            nPos = si.nTrackPos;
-            break;
-        default:
-        case SB_THUMBTRACK:
-            nPos = si.nPos;
-            break;
-    }
-    SetScrollPos(m_hwnd, SB_VERT, nPos, TRUE);
-
-    nPos = GetScrollPos(m_hwnd, SB_VERT);
-
-    ScrollWindowEx(m_hwnd, 0, (int)(nOldPos - nPos) * 1,
-        NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_SCROLLCHILDREN);
-
-
-
-    UpdateWindow(m_hwnd);
-
 }
 
 void WindowsApp::SaveDesktopLayout()

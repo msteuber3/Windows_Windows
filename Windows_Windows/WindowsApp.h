@@ -49,6 +49,12 @@ public:
     // Called when STACK button is pressed
     void StackWindows();
 
+    void StackWindowsCallback();
+
+    void StackFourOrLess(std::vector<WindowControl*> SubVector);
+    
+    void StackFiveToEight(std::vector<WindowControl*> SubVector);
+
     void CascadeWindows();
 
     // Called when SAVE LAYOUT button is pressed. Saves the current layout to a json file
@@ -98,6 +104,10 @@ private:
 
     // Stack button window handle
     HWND m_hStackButton;
+
+    HWND m_hNextStack;
+
+    HWND m_hPrevStack;
 
     // Save layout button window handle
     HWND m_hSaveWinLayout;

@@ -34,19 +34,19 @@ void WindowControl::Create()
     RegisterClass(&wc);
 
     m_hControlPanel = CreateWindowExW(
-        0,
-        wc.lpszClassName, 
-        L"Control Panel",
-        WS_CHILD | WS_VISIBLE | WS_BORDER,
-        0,
-        150,
-        1000,
-        m_x + 100,
-        m_Parent, 
-        NULL, 
-        wc.hInstance,
-        NULL
-    );
+       0,
+       wc.lpszClassName, 
+       L"Control Panel",
+       WS_CHILD | WS_VISIBLE | WS_BORDER,
+       0,
+       150,
+       1000,
+       m_x + 100,
+       m_Parent, 
+       NULL, 
+       wc.hInstance,
+       NULL
+   );
 
     m_Title = CreateWindowEx(
         0, TEXT("STATIC"), (LPCWSTR)m_oss,

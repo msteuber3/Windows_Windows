@@ -89,17 +89,17 @@ public:
 
     HWND m_hControlWindow;
 
-    static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+   static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
         BaseWindow* app = reinterpret_cast<BaseWindow*>(lParam);
         WCHAR windowTitle[256];
         if (GetParent(hwnd) == NULL && IsWindowVisible(hwnd)) {
             if (GetWindowText(hwnd, windowTitle, sizeof(windowTitle) / sizeof(windowTitle[0])) == 0) {
                 return TRUE;
             }
-            if ((std::wstring(windowTitle) == L"Program Manager" || std::wstring(windowTitle) == L"Windows Input Experience") && !IsWindowVisible(hwnd)) {
+            if ((std::wstring(windowTitle) == L"Program Manager" || std::wstring(windowTitle) == L"Windows Input Experience")) {
                 return TRUE;
             }
-            if (std::wstring(windowTitle) == L"Windows Window Extension Window") {
+            if (std::wstring(windowTitle) == L"Windows Window Extension Window" || std::wstring(windowTitle) == L"Windows_Windows (Running) - Microsoft Visual Studio") {
                 return TRUE;
             }
             oss << L"Window Handle: " << hwnd << L" Title: " << windowTitle << "\r\n";
@@ -108,8 +108,7 @@ public:
                 app->m_hControlWindow,
                 hwnd,
                 windowTitle,
-                (static_cast<int>(app->WindowsVector.size() * 100))
-            ));
+                (app->WindowsVector.size() == 1 ? 100 : (static_cast<int>(app->WindowsVector.size() * 100)))));
         }
         return TRUE;
     }
