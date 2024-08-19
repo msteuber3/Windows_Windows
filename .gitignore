@@ -432,3 +432,5 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
+./Windows_Windows/SavedLayouts/*
+./Windows_Windows/SavedDesktopLayouts/*
