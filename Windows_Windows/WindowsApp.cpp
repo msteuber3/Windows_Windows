@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 08/19/2024 MS-24.01.04.01 Added ability to save layout configurations, fixed bugs in the stack function
 // 08/16/2024 MS-24.01.03.06 Refactored
 // 08/15/2024 MS-24.01.03.05 Fixed windows stack
 // 08/13/2024 MS-24.01.03.04 Added (currently useless) menu, added (currently useless) save Desktop Icons button, fixed execute layout button
@@ -41,6 +42,10 @@
 #define SAVE_DESKTOP_LAYOUT 9
 #define NEXT_STACK 10
 #define PREV_STACK 11
+#define EXIT_STACK 12
+#define SAVED_DESKTOP_LAYOUTS 13
+#define HIDE_SAVED_DESKTOP_CONFIGS 14
+#define EXECUTE_DESKTOP_LAYOUT 15
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -51,6 +56,7 @@ std::wostringstream WindowsApp::oss; //ostream string that contains window contr
 HWND WindowsApp::WindowHandle; // Window handle that holds info for creation of the windows vector
 static std::wstring userInput;
 std::vector<HWND> layoutButtons;
+std::vector<HWND> desktopLayoutButtons;
 PCWSTR WindowsApp::ClassName() const { return L"Windows Window Extension"; }
 int stackIndex;
 
@@ -101,6 +107,22 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             case PREV_STACK:
                 stackIndex--;
                 StackWindowsCallback();
+                break;
+            case EXIT_STACK:
+                stackIndex = 0;
+                DestroyWindow(m_hPrevStack);
+                DestroyWindow(m_hNextStack);
+                DestroyWindow(m_hExitStack);
+                m_hStackButton = CreateWindowEx(
+                    0,
+                    L"BUTTON",
+                    L"STACK",
+                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+                    10, 50, 110, 30,
+                    m_hwnd,
+                    (HMENU)STACK,
+                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+                    NULL);
                 break;
             case SAVE_LAYOUT:
                 WinWinSaveLayout();
@@ -195,12 +217,50 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             case SAVE_DESKTOP_LAYOUT:
                 SaveDesktopLayout();
                 break;
-            }
-            RECT ultPrevRect;
-            GetWindowRect(m_hwnd, &ultPrevRect);
-            SetWindowPos(m_hwnd, HWND_TOPMOST, ultPrevRect.left, ultPrevRect.top, ultPrevRect.right - ultPrevRect.left, ultPrevRect.bottom - ultPrevRect.top, NULL); // Bring current window to front
-        }
-        break;
+            case SAVED_DESKTOP_LAYOUTS:
+                ViewSavedDesktopLayouts();
+                DestroyWindow(m_hSavedDesktopConfigs);
+                m_hHideSavedDesktopConfigs = CreateWindowEx(
+                    0,
+                    L"BUTTON",
+                    L"<",
+                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+                    230, 50, 110, 30,
+                    m_hwnd,
+                    (HMENU)HIDE_SAVED_DESKTOP_CONFIGS,
+                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+                    NULL);
+                break;
+            case HIDE_SAVED_DESKTOP_CONFIGS:
+                RECT prevRect6;
+                GetWindowRect(m_hwnd, &prevRect6);
+                for (HWND layoutButton : desktopLayoutButtons) {
+                    DestroyWindow(layoutButton);
+                }
+                DestroyWindow(m_hHideSavedDesktopConfigs);
+                m_hSavedDesktopConfigs = CreateWindowExW(
+                    0,
+                    L"BUTTON",
+                    L"LAYOUTS",
+                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+                    230, 50, 110, 30,
+                    m_hwnd,
+                    (HMENU)SAVED_DESKTOP_LAYOUTS,
+                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+                    NULL);
+                RECT prevRect5;
+                GetWindowRect(m_hwnd, &prevRect5);
+
+                SetWindowPos(m_hwnd, NULL, 0, 0, 430, prevRect5.bottom - prevRect5.top, SWP_NOMOVE);
+                break;
+            case EXECUTE_DESKTOP_LAYOUT:
+                wchar_t desktopJsonFile[256];
+                GetWindowText((HWND)lParam, desktopJsonFile, 256);
+                ExecuteSavedDesktopLayout(desktopJsonFile);
+                break;
+}
+}
+        break;  
     case WM_CLOSE:
         if (m_hwnd != NULL) {
             DestroyWindow(m_hwnd);
@@ -248,7 +308,7 @@ HRESULT WindowsApp::Initialize()
         CW_USEDEFAULT,
         CW_USEDEFAULT,
         430,
-        200
+        220
     );
     HMENU hMenu = LoadMenu(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_MENU1));
     if (hMenu == NULL) {
@@ -337,12 +397,23 @@ void WindowsApp::CreateControlOpts() {
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
 
+    m_hSavedDesktopConfigs = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"LAYOUTS",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        230, 50, 110, 30,
+        m_hwnd,
+        (HMENU)SAVED_DESKTOP_LAYOUTS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
     m_hShowWindows = CreateWindowEx(
         0,
         L"BUTTON",
         L"V",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-        10, 100, 400, 30,
+        10, 120, 400, 30,
         m_hwnd,
         (HMENU)SHOW_ACTIVE_WINDOWS,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
@@ -455,14 +526,24 @@ void WindowsApp::StackWindows()
     if (WindowsVector.size() <= 4) {
         StackFourOrLess(WindowsVector);
     }
-    else if (4 < WindowsVector.size() >= 8) {
+    else if (WindowsVector.size() <= 8) {
         StackFiveToEight(WindowsVector);
     }
     else if (WindowsVector.size() > 8) {
-        int lastVector = WindowsVector.size() % 8;
-        int subVectorCount = (WindowsVector.size() - WindowsVector.size() % 8) + (lastVector == 0 ? 0 : 1);
+       
         stackIndex = 0;
         StackWindowsCallback();
+        DestroyWindow(m_hStackButton);
+        m_hExitStack = CreateWindowEx(
+            0,
+            L"BUTTON",
+            L"EXIT STACK",
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            10, 50, 110, 30,
+            m_hwnd,
+            (HMENU)EXIT_STACK,
+            (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+            NULL);
         m_hNextStack = CreateWindowEx(
             0,
             L"BUTTON",
@@ -483,11 +564,17 @@ void WindowsApp::StackWindows()
             (HMENU)PREV_STACK,
             (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
             NULL);
+        EnableWindow(m_hPrevStack, FALSE);
     }
 }
 
 void WindowsApp::StackWindowsCallback()
 {
+    int lastVector = WindowsVector.size() % 8;
+    int subVectorCount = (floor(float(WindowsVector.size()) / float(8))) + (lastVector == 0 ? 0 : 1);
+    (stackIndex == 0 ? EnableWindow(m_hPrevStack, FALSE) : EnableWindow(m_hPrevStack, TRUE));
+    (stackIndex == subVectorCount - 1 ? EnableWindow(m_hNextStack, FALSE) : EnableWindow(m_hNextStack, TRUE));
+
     std::vector<WindowControl*> SubVector;
     for (int i = 0; i < 8; i++) {
         if (WindowsVector.size() <= (stackIndex * 8) + i) {
@@ -512,7 +599,8 @@ void WindowsApp::StackFourOrLess(std::vector<WindowControl*> SubVector) {
     for (WindowControl* ctrl : SubVector) {
         ShowWindow(ctrl->GetInstanceHandle(), SW_RESTORE);
         SendMessage(ctrl->GetInstanceHandle(), WM_SYSCOMMAND, SC_RESTORE, 0);
-        SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
+        SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
+        SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
         stackPosy += stackFactorY;
         i++;
     }
@@ -530,12 +618,16 @@ void WindowsApp::StackFiveToEight(std::vector<WindowControl*>SubVector) {
         SendMessage(ctrl->GetInstanceHandle(), WM_SYSCOMMAND, SC_RESTORE, 0);
         if (i >= ceil(float(SubVector.size()) / float(2))) {
 
-            SetWindowPos(ctrl->GetInstanceHandle(), NULL, GetSystemMetrics(SM_CXSCREEN) / 2, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorYRight, NULL);
+            SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, GetSystemMetrics(SM_CXSCREEN) / 2, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorYRight, NULL);
+            SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, GetSystemMetrics(SM_CXSCREEN) / 2, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorYRight, NULL);
+
             stackPosy += stackFactorYRight;
         }
 
         else {
-            SetWindowPos(ctrl->GetInstanceHandle(), NULL, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorYLeft, NULL);
+            SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorYLeft, NULL);
+            SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN) / 2, stackFactorYLeft, NULL);
+
             stackPosy += stackFactorYLeft;
         }
         i++;
@@ -741,4 +833,190 @@ void WindowsApp::ExecuteSaved(std::wstring json) {
 
 void WindowsApp::SaveDesktopLayout()
 {
+    std::wstring layoutName = GetUserInput((HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE));
+
+    std::wstring WinWinLayoutsFile = L"SavedDesktopLayouts/" + layoutName + L".json";   // Name of json file (in SavedLayouts folder)
+
+    if (!std::filesystem::exists(WinWinLayoutsFile)) { // Check if it exists, create it if not
+        std::ofstream{ WinWinLayoutsFile };
+    }
+
+    HWND hProgMan = FindWindow(L"Progman", NULL);
+    HWND hShellView = FindWindowEx(hProgMan, NULL, L"SHELLDLL_DefView", NULL);
+    FindWindowEx(hShellView, NULL, L"SysListView32", NULL);
+
+    HWND hDesktopListView = FindWindowEx(hShellView, NULL, L"SysListView32", NULL);
+     int itemCount = ListView_GetItemCount(hDesktopListView);
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hDesktopListView, &pid);
+    HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, pid);
+
+    // Allocate memory in the target process
+    LPPOINT pt = (LPPOINT)VirtualAllocEx(hProcess, NULL, sizeof(POINT), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    LVITEM* lvItem = (LVITEM*)VirtualAllocEx(hProcess, NULL, sizeof(LVITEM), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    LPWSTR itemText = (LPWSTR)VirtualAllocEx(hProcess, NULL, 256 * sizeof(WCHAR), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    WCHAR itemName[256] = L"";
+
+    POINT iconPos;
+    SIZE_T numRead;
+
+    std::fstream LayFile;
+    LayFile.open(WinWinLayoutsFile);
+
+    nlohmann::json placeInfo; // Final json that is written to file
+    nlohmann::basic_json placeInfoTemp; // Temp json, cleared after each run of the loop
+
+    for (int i = 0; i < itemCount; ++i) {
+        if (!ListView_GetItemPosition(hDesktopListView, i, pt)) {
+            wprintf(L"Failed to get position for item %d\n", i);
+            continue;
+        }
+        ReadProcessMemory(hProcess, pt, &iconPos, sizeof(POINT), &numRead);
+
+        LVITEM lvi = { 0 };
+        lvi.iSubItem = 0;
+        lvi.cchTextMax = 256;
+        lvi.pszText = itemText;
+
+        // Write LVITEM to the target process
+        WriteProcessMemory(hProcess, lvItem, &lvi, sizeof(LVITEM), NULL);
+
+        // Retrieve the item text
+        SendMessage(hDesktopListView, LVM_GETITEMTEXT, (WPARAM)i, (LPARAM)lvItem);
+
+        // Read the item text from the target process
+        ReadProcessMemory(hProcess, itemText, itemName, 256 * sizeof(WCHAR), &numRead);
+        placeInfoTemp = { {"icon", std::wstring(itemName).c_str()},// Translate WINDOWPLACEMENT to json, stick the process in the front
+            {"position", {{"x", std::to_string(iconPos.x)}, {"y",  std::to_string(iconPos.y)}}} };
+
+        placeInfo.push_back(placeInfoTemp); //append to main json
+        placeInfoTemp.clear();// clear temp
+    }
+    VirtualFreeEx(hProcess, pt, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, lvItem, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, itemText, 0, MEM_RELEASE);
+    CloseHandle(hProcess);
+    LayFile << placeInfo; // add to json file
+
+    LayFile.close();
+}
+
+void WindowsApp::ViewSavedDesktopLayouts() {
+    std::wstring WinWinLayoutsFolder = L"SavedDesktopLayouts/";
+    std::wstring layoutName;
+    int xPos = 350;
+    int yPos = 0;
+    int i = 0;
+    RECT prevRect5;
+    GetWindowRect(m_hwnd, &prevRect5);
+    for (const auto& WinWinLayoutsFile : std::filesystem::directory_iterator(WinWinLayoutsFolder)) {
+        layoutName = WinWinLayoutsFile.path().filename();
+        desktopLayoutButtons.push_back(CreateWindowEx(
+            0,
+            L"BUTTON",
+            layoutName.erase(layoutName.length() - 5).c_str(),
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+            xPos, yPos, 150, 30,
+            m_hwnd,
+            (HMENU)EXECUTE_DESKTOP_LAYOUT,
+            (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+            NULL));
+        i++;
+        if (i >= 3) {
+            xPos += 150;
+            yPos = 0;
+            i = 0;
+        }
+        else {
+            yPos += 30;
+        }
+
+
+        SetWindowPos(m_hwnd, NULL, 0, 0, xPos + 175, prevRect5.bottom - prevRect5.top, SWP_NOMOVE);
+    }
+}
+
+void WindowsApp::ExecuteSavedDesktopLayout(std::wstring json) {
+    std::wstring jsonFile = L"SavedDesktopLayouts/" + json + L".json";
+    if (!std::filesystem::exists(jsonFile)) { // Check if it exists
+        return;
+    }
+    std::vector<SavedIcon*> SavedIcons;
+
+    HWND hProgMan = FindWindow(L"Progman", NULL);
+    HWND hShellView = FindWindowEx(hProgMan, NULL, L"SHELLDLL_DefView", NULL);
+    FindWindowEx(hShellView, NULL, L"SysListView32", NULL);
+
+    HWND hDesktopListView = FindWindowEx(hShellView, NULL, L"SysListView32", NULL);
+    int itemCount = ListView_GetItemCount(hDesktopListView);
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hDesktopListView, &pid);
+    HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, pid);
+
+    // Allocate memory in the target process
+    LPPOINT pt = (LPPOINT)VirtualAllocEx(hProcess, NULL, sizeof(POINT), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    LVITEM* lvItem = (LVITEM*)VirtualAllocEx(hProcess, NULL, sizeof(LVITEM), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    LPWSTR itemText = (LPWSTR)VirtualAllocEx(hProcess, NULL, 256 * sizeof(WCHAR), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    WCHAR itemName[256] = L"";
+
+    POINT iconPos;
+    SIZE_T numRead;
+    POINT savedIconPos;
+
+    std::fstream LayFile;
+    LayFile.open(jsonFile, std::ios::in);
+    nlohmann::json Doc{ nlohmann::json::parse(LayFile) };
+    int i = 0;
+    for (auto& window : Doc.items()) {
+        std::string iconName = Doc[i].at("icon");
+        std::string iconPosXStr = Doc[i].at("position").at("x");
+        UINT iconPosX = std::stoi(iconPosXStr);
+        std::string iconPosYStr = Doc[i].at("position").at("y");
+        UINT iconPosY = std::stoi(iconPosYStr);
+        savedIconPos.x = iconPosX;
+        savedIconPos.y = iconPosY;
+        
+        SavedIcons.push_back(new SavedIcon(iconName, savedIconPos));
+        i++;
+    }
+    for (int i = 0; i < itemCount; ++i) {
+        if (!ListView_GetItemPosition(hDesktopListView, i, pt)) {
+            wprintf(L"Failed to get position for item %d\n", i);
+        }
+        ReadProcessMemory(hProcess, pt, &iconPos, sizeof(POINT), &numRead);
+
+
+        LVITEM lvi = { 0 };
+        lvi.iSubItem = 0;
+        lvi.cchTextMax = 256;
+        lvi.pszText = itemText;
+
+        // Write LVITEM to the target process
+        WriteProcessMemory(hProcess, lvItem, &lvi, sizeof(LVITEM), NULL);
+
+        // Retrieve the item text
+        SendMessageW(hDesktopListView, LVM_GETITEMTEXT, (WPARAM)i, (LPARAM)lvItem);
+
+        // Read the item text from the target process
+        ReadProcessMemory(hProcess, itemText, itemName, 256 * sizeof(WCHAR), &numRead);
+
+        for (SavedIcon* icon : SavedIcons) {
+            int wideStrSize = MultiByteToWideChar(CP_UTF8, 0, icon->m_iconName.c_str(), -1, nullptr, 0);
+            std::wstring convertedWideStr(wideStrSize, L'/0');
+            MultiByteToWideChar(CP_UTF8, 0, icon->m_iconName.c_str(), -1, &convertedWideStr[0], wideStrSize);
+            convertedWideStr.erase(std::remove(convertedWideStr.begin(), convertedWideStr.end(), L'\0'), convertedWideStr.end());
+            std::wstring pathWstring(itemName);
+            if (pathWstring == convertedWideStr) {
+
+                int itemIndex = i;
+                SendMessage(hDesktopListView, LVM_SETITEMPOSITION, (WPARAM)itemIndex, MAKELPARAM(icon->m_iconPos.x, icon->m_iconPos.y));
+                break;
+                itemName[0] = L'\0';
+            }
+        }
+    }
+    VirtualFreeEx(hProcess, pt, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, lvItem, 0, MEM_RELEASE);
+    VirtualFreeEx(hProcess, itemText, 0, MEM_RELEASE);
+    CloseHandle(hProcess);
 }

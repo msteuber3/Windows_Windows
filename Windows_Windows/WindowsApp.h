@@ -22,6 +22,7 @@
 #include <locale>
 #include <codecvt>
 #include <filesystem>
+#include <commctrl.h>
 
 class WindowsApp : public BaseWindow<WindowsApp> {
 
@@ -62,7 +63,11 @@ public:
 
     void WinWinViewSaved();
 
+    void ViewSavedDesktopLayouts();
+
     void ExecuteSaved(std::wstring json);
+
+    void ExecuteSavedDesktopLayout(std::wstring json);
 
     struct SavedWindow {
         SavedWindow(std::string process,
@@ -95,6 +100,15 @@ public:
             return &placement;
         }
     };
+    struct SavedIcon {
+        SavedIcon(std::string iconName,
+            POINT iconPos) {
+            m_iconName = iconName;
+            m_iconPos = iconPos;
+        };
+        std::string m_iconName;
+        POINT m_iconPos;
+    };
 
 private:
     // Main control panel window handle
@@ -109,6 +123,8 @@ private:
 
     HWND m_hPrevStack;
 
+    HWND m_hExitStack;
+
     // Save layout button window handle
     HWND m_hSaveWinLayout;
 
@@ -121,6 +137,10 @@ private:
     HWND m_hHideSavedConfigs;
 
     HWND m_hSaveDesktopLayout;
+
+    HWND m_hSavedDesktopConfigs;
+
+    HWND m_hHideSavedDesktopConfigs;
 
     // Called upon window creation. Creates all child windows of m_hwnd
     HRESULT HandleCreate();
