@@ -4,6 +4,7 @@
 //===============================================
 // WindowsControl.cpp
 // ----------------------------------------------
+// 08/19/2024 MS-24.01.04.01 Fixed a bug preventing access to sub control buttons
 // 07/31/2024 MS-24.01.02.06 Updated child window size for sub control windows - buttons now all work properly 
 // 07/23/2024 MS-24.01.01.0 created
 //-----------------------------------------------
@@ -39,9 +40,9 @@ void WindowControl::Create()
        L"Control Panel",
        WS_CHILD | WS_VISIBLE | WS_BORDER,
        0,
-       150,
+       m_x + 150,
        1000,
-       m_x + 100,
+       100,
        m_Parent, 
        NULL, 
        wc.hInstance,
@@ -51,7 +52,7 @@ void WindowControl::Create()
     m_Title = CreateWindowEx(
         0, TEXT("STATIC"), (LPCWSTR)m_oss,
         WS_CHILD | WS_VISIBLE,
-        10, m_x + 10, 200, 30,
+        10, 10, 200, 30,
         m_hControlPanel, NULL, GetModuleHandle(NULL), NULL);
 
 	m_Minimize = CreateWindowEx(
@@ -59,7 +60,7 @@ void WindowControl::Create()
         L"BUTTON", 
         L"-", 
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 
-        10, m_x + 50, 100, 30,
+        10, 50, 100, 30,
         m_hControlPanel,
         (HMENU)MIN,
         wc.hInstance,
@@ -70,7 +71,7 @@ void WindowControl::Create()
         L"BUTTON",
         L"+",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        110, m_x+ 50, 100, 30,
+        110, 50, 100, 30,
         m_hControlPanel,
         (HMENU)MAX,
         wc.hInstance,
@@ -81,7 +82,7 @@ void WindowControl::Create()
         L"BUTTON",
         L"X",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        210, m_x + 50, 100, 30,
+        210, 50, 100, 30,
         m_hControlPanel,
         (HMENU)CLOSE,
         wc.hInstance,

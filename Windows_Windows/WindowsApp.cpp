@@ -259,6 +259,9 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 ExecuteSavedDesktopLayout(desktopJsonFile);
                 break;
 }
+        RECT mainWindowRect;
+        GetWindowRect(m_hwnd, &mainWindowRect);
+        SetWindowPos(m_hwnd, HWND_TOPMOST, mainWindowRect.left, mainWindowRect.top, mainWindowRect.right - mainWindowRect.left, mainWindowRect.bottom - mainWindowRect.top, SWP_NOMOVE);
 }
         break;  
     case WM_CLOSE:
@@ -830,6 +833,8 @@ void WindowsApp::ExecuteSaved(std::wstring json) {
     }
     
 }
+
+ //   SAVE DESKTOP ICON LAYOUTS   //
 
 void WindowsApp::SaveDesktopLayout()
 {
