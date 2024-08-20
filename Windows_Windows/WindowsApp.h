@@ -23,6 +23,10 @@
 #include <codecvt>
 #include <filesystem>
 #include <commctrl.h>
+#include <string>
+#include <sstream>
+#include <Psapi.h>
+#include "resource.h"
 
 class WindowsApp : public BaseWindow<WindowsApp> {
 

@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 08/20/2024 MS-24.01.04.02 Added preprocessor definition for closed main window height
 // 08/19/2024 MS-24.01.04.01 Added ability to save layout configurations, fixed bugs in the stack function
 // 08/16/2024 MS-24.01.03.06 Refactored
 // 08/15/2024 MS-24.01.03.05 Fixed windows stack
@@ -24,12 +25,7 @@
 // Main window source code
 
 #include "WindowsApp.h"
-#include <filesystem>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <Psapi.h>
-#include "resource.h"
+
 
 #define CASCADE 1
 #define SAVE_LAYOUT 2
@@ -46,6 +42,9 @@
 #define SAVED_DESKTOP_LAYOUTS 13
 #define HIDE_SAVED_DESKTOP_CONFIGS 14
 #define EXECUTE_DESKTOP_LAYOUT 15
+
+#define SHOW_ACTIVE_WINDOWS_BUTTON_Y 120
+#define M_HWND_CLOSED_Y 220
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -179,7 +178,7 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                     L"BUTTON",
                     L"^",
                     WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-                    10, 100, 400, 30,
+                    10, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 400, 30,
                     m_hwnd,
                     (HMENU)HIDE_ACTIVE_WINDOWS,
                     (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
@@ -195,14 +194,14 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
                 RECT prevRect2;
                 GetWindowRect(m_hwnd, &prevRect2);
-                SetWindowPos(m_hControlWindow, NULL, 0, 0, prevRect2.right - prevRect2.left, 200, SW_SHOWNORMAL | SW_INVALID); // resize control window
-                SetWindowPos(m_hwnd, NULL, 0, 0, prevRect2.right - prevRect2.left, 200, SWP_NOMOVE);
+                SetWindowPos(m_hControlWindow, NULL, 0, 0, prevRect2.right - prevRect2.left, M_HWND_CLOSED_Y, SW_SHOWNORMAL | SW_INVALID); // resize control window
+                SetWindowPos(m_hwnd, NULL, 0, 0, prevRect2.right - prevRect2.left, M_HWND_CLOSED_Y, SWP_NOMOVE);
                 m_hShowWindows = CreateWindowEx(
                     0,
                     L"BUTTON",
                     L"V",
                     WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-                    10, 100, 400, 30,
+                    10, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 400, 30,
                     m_hwnd,
                     (HMENU)SHOW_ACTIVE_WINDOWS,
                     (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
@@ -416,7 +415,7 @@ void WindowsApp::CreateControlOpts() {
         L"BUTTON",
         L"V",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-        10, 120, 400, 30,
+        10, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 400, 30,
         m_hwnd,
         (HMENU)SHOW_ACTIVE_WINDOWS,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),

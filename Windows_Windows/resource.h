@@ -2,6 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by Windows_Windows.rc
 //
+#pragma once
 #define SW_HIDE                         0
 #define HIDE_WINDOW                     0
 #define WM_NULL                         0x0000
