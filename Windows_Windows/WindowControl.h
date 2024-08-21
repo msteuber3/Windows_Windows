@@ -29,6 +29,8 @@ public:
 
 	HWND GetInstanceHandle();
 
+	LPCWSTR GetInstanceTitle();
+
 	HWND m_hControlPanel;
 
 private:

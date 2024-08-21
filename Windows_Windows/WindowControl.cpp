@@ -40,7 +40,7 @@ void WindowControl::Create()
        L"Control Panel",
        WS_CHILD | WS_VISIBLE | WS_BORDER,
        0,
-       m_x + 150,
+       m_x + 300,
        1000,
        100,
        m_Parent, 
@@ -60,7 +60,7 @@ void WindowControl::Create()
         L"BUTTON", 
         L"-", 
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 
-        10, 50, 100, 30,
+        10, 50, 70, 30,
         m_hControlPanel,
         (HMENU)MIN,
         wc.hInstance,
@@ -71,7 +71,7 @@ void WindowControl::Create()
         L"BUTTON",
         L"+",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        110, 50, 100, 30,
+        85, 50, 70, 30,
         m_hControlPanel,
         (HMENU)MAX,
         wc.hInstance,
@@ -82,7 +82,7 @@ void WindowControl::Create()
         L"BUTTON",
         L"X",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        210, 50, 100, 30,
+        160, 50, 70, 30,
         m_hControlPanel,
         (HMENU)CLOSE,
         wc.hInstance,
@@ -104,6 +104,11 @@ int WindowControl::GetYPos(){
 HWND WindowControl::GetInstanceHandle()
 {
     return this->m_InstanceHandle;
+}
+
+LPCWSTR WindowControl::GetInstanceTitle()
+{
+    return this->m_oss;
 }
 
 LRESULT CALLBACK WindowControl::ControlPanelProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {

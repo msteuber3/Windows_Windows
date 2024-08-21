@@ -45,8 +45,16 @@ public:
     // Called by WindowProc callback function, processes commands 
     LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+    static LRESULT CALLBACK ButtonProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+
     // Enumerate through the windows open on the machine and create a control panel for each of them [[TEMPORARY]]
     void PrintActiveWindows();
+
+    void WinWinShowActive();
+
+    void WinWinHideActive();
+
 
     // Creates the main control panel to manage window layouts, stack windows, etc.
     void CreateControlOpts();
@@ -60,14 +68,22 @@ public:
     
     void StackFiveToEight(std::vector<WindowControl*> SubVector);
 
+    void ExitStack();
+
     void CascadeWindows();
+
+    void SquishCascade();
 
     // Called when SAVE LAYOUT button is pressed. Saves the current layout to a json file
     void WinWinSaveLayout();
 
     void WinWinViewSaved();
 
+    void WinWinHideSaved();
+
     void ViewSavedDesktopLayouts();
+
+    void HideSavedDesktopLayouts();
 
     void ExecuteSaved(std::wstring json);
 
@@ -145,6 +161,18 @@ private:
     HWND m_hSavedDesktopConfigs;
 
     HWND m_hHideSavedDesktopConfigs;
+
+    HWND m_hSquish;
+
+    HWND m_WindowTitle;
+
+    HWND m_IconTitle;
+
+    HWND m_hIconControlPanel;
+
+    HWND m_hWindowsControlPanel;
+
+    HWND m_hControlPanel;
 
     // Called upon window creation. Creates all child windows of m_hwnd
     HRESULT HandleCreate();

@@ -42,9 +42,10 @@
 #define SAVED_DESKTOP_LAYOUTS 13
 #define HIDE_SAVED_DESKTOP_CONFIGS 14
 #define EXECUTE_DESKTOP_LAYOUT 15
+#define SQUISH 16
 
-#define SHOW_ACTIVE_WINDOWS_BUTTON_Y 120
-#define M_HWND_CLOSED_Y 220
+#define SHOW_ACTIVE_WINDOWS_BUTTON_Y 250
+#define M_HWND_CLOSED_Y 350
 
 INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -58,6 +59,9 @@ std::vector<HWND> layoutButtons;
 std::vector<HWND> desktopLayoutButtons;
 PCWSTR WindowsApp::ClassName() const { return L"Windows Window Extension"; }
 int stackIndex;
+WNDPROC iconWindowProc;
+WNDPROC windowWindowProc;
+WNDPROC controlWindowProc;
 
 ///   CALLBACK FUNCTIONS   ///
 
@@ -108,105 +112,22 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 StackWindowsCallback();
                 break;
             case EXIT_STACK:
-                stackIndex = 0;
-                DestroyWindow(m_hPrevStack);
-                DestroyWindow(m_hNextStack);
-                DestroyWindow(m_hExitStack);
-                m_hStackButton = CreateWindowEx(
-                    0,
-                    L"BUTTON",
-                    L"STACK",
-                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-                    10, 50, 110, 30,
-                    m_hwnd,
-                    (HMENU)STACK,
-                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-                    NULL);
+                ExitStack();
                 break;
             case SAVE_LAYOUT:
                 WinWinSaveLayout();
                 break;
             case VIEW_SAVED_CONFIGS:
                 WinWinViewSaved();
-                DestroyWindow(m_hSavedConfigs);
-                m_hHideSavedConfigs = CreateWindowEx(
-                    0,
-                    L"BUTTON",
-                    L"<",
-                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-                    230, 20, 110, 30,
-                    m_hwnd,
-                    (HMENU)HIDE_SAVED_CONFIGS,
-                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-                    NULL);
                 break;
             case HIDE_SAVED_CONFIGS:
-                RECT prevRect3;
-                GetWindowRect(m_hwnd, &prevRect3);
-                for (HWND layoutButton : layoutButtons) {
-                    DestroyWindow(layoutButton);
-                }
-                DestroyWindow(m_hHideSavedConfigs);
-                m_hSavedConfigs = CreateWindowExW(
-                    0,
-                    L"BUTTON",
-                    L"SAVED CONFIGS",
-                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-                    230, 20, 110, 30,
-                    m_hwnd,
-                    (HMENU)VIEW_SAVED_CONFIGS,
-                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-                    NULL);
-                RECT prevRect4;
-                GetWindowRect(m_hwnd, &prevRect4);
-
-                SetWindowPos(m_hwnd, NULL, 0, 0, 430, prevRect4.bottom - prevRect4.top, SWP_NOMOVE);
+                WinWinHideSaved();
                 break;
             case SHOW_ACTIVE_WINDOWS:
-                // Enumerate through active windows and create controls
-                WindowsVector.clear();
-                PrintActiveWindows();
-                ControlY = ((WindowsVector.size() + 1) * 100) + 102;
-                RECT prevRect;
-                GetWindowRect(m_hwnd, &prevRect);
-                SetWindowPos(m_hwnd, NULL, 0, 0, prevRect.right - prevRect.left, ControlY, SWP_NOMOVE);
-                SetWindowPos(m_hControlWindow, NULL, 0, 0, prevRect.right - prevRect.left, ControlY, SW_SHOWNORMAL); // resize control window
-                DestroyWindow(m_hShowWindows);
-
-                m_hHideWindows = CreateWindowExW(
-                    0,
-                    L"BUTTON",
-                    L"^",
-                    WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-                    10, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 400, 30,
-                    m_hwnd,
-                    (HMENU)HIDE_ACTIVE_WINDOWS,
-                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-                    NULL);
-
-                for (WindowControl* ctrl : WindowsVector) {
-                    SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-                }
+                WinWinShowActive();
                 break;
             case HIDE_ACTIVE_WINDOWS:
-                for (WindowControl* ctrl : WindowsVector) {
-                    SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW);
-                }
-                RECT prevRect2;
-                GetWindowRect(m_hwnd, &prevRect2);
-                SetWindowPos(m_hControlWindow, NULL, 0, 0, prevRect2.right - prevRect2.left, M_HWND_CLOSED_Y, SW_SHOWNORMAL | SW_INVALID); // resize control window
-                SetWindowPos(m_hwnd, NULL, 0, 0, prevRect2.right - prevRect2.left, M_HWND_CLOSED_Y, SWP_NOMOVE);
-                m_hShowWindows = CreateWindowEx(
-                    0,
-                    L"BUTTON",
-                    L"V",
-                    WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-                    10, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 400, 30,
-                    m_hwnd,
-                    (HMENU)SHOW_ACTIVE_WINDOWS,
-                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-                    NULL);
-                DestroyWindow(m_hHideWindows);
+                WinWinHideActive();
                 break;
             case EXECUTE_LAYOUT:
                 wchar_t jsonFile[256];
@@ -218,44 +139,17 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 break;
             case SAVED_DESKTOP_LAYOUTS:
                 ViewSavedDesktopLayouts();
-                DestroyWindow(m_hSavedDesktopConfigs);
-                m_hHideSavedDesktopConfigs = CreateWindowEx(
-                    0,
-                    L"BUTTON",
-                    L"<",
-                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-                    230, 50, 110, 30,
-                    m_hwnd,
-                    (HMENU)HIDE_SAVED_DESKTOP_CONFIGS,
-                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-                    NULL);
                 break;
             case HIDE_SAVED_DESKTOP_CONFIGS:
-                RECT prevRect6;
-                GetWindowRect(m_hwnd, &prevRect6);
-                for (HWND layoutButton : desktopLayoutButtons) {
-                    DestroyWindow(layoutButton);
-                }
-                DestroyWindow(m_hHideSavedDesktopConfigs);
-                m_hSavedDesktopConfigs = CreateWindowExW(
-                    0,
-                    L"BUTTON",
-                    L"LAYOUTS",
-                    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-                    230, 50, 110, 30,
-                    m_hwnd,
-                    (HMENU)SAVED_DESKTOP_LAYOUTS,
-                    (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-                    NULL);
-                RECT prevRect5;
-                GetWindowRect(m_hwnd, &prevRect5);
-
-                SetWindowPos(m_hwnd, NULL, 0, 0, 430, prevRect5.bottom - prevRect5.top, SWP_NOMOVE);
+                HideSavedDesktopLayouts();
                 break;
             case EXECUTE_DESKTOP_LAYOUT:
                 wchar_t desktopJsonFile[256];
                 GetWindowText((HWND)lParam, desktopJsonFile, 256);
                 ExecuteSavedDesktopLayout(desktopJsonFile);
+                break;
+            case SQUISH:
+                SquishCascade();
                 break;
 }
         RECT mainWindowRect;
@@ -298,6 +192,16 @@ INT_PTR CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
     return FALSE;
 }
 
+LRESULT CALLBACK WindowsApp::ButtonProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    if (uMsg == WM_COMMAND) {
+        SendMessage(GetParent(hwnd), uMsg, wParam, lParam);
+        return 0; 
+    }
+    return CallWindowProc(iconWindowProc, hwnd, uMsg, wParam, lParam);
+
+}
+
+
 ///   INITIALIZE   ///
 
 HRESULT WindowsApp::Initialize()
@@ -309,8 +213,8 @@ HRESULT WindowsApp::Initialize()
         0,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        430,
-        220
+        300,
+        M_HWND_CLOSED_Y
     );
     HMENU hMenu = LoadMenu(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_MENU1));
     if (hMenu == NULL) {
@@ -355,13 +259,82 @@ HRESULT WindowsApp::HandleCreate() {
 }
 
 void WindowsApp::CreateControlOpts() {
+    
+    m_hIconControlPanel = CreateWindowEx(
+        0,
+        L"STATIC",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        0,
+        0,
+        300,
+        95,
+        m_hwnd,
+        NULL,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL
+    );
+    iconWindowProc = (WNDPROC)SetWindowLongPtr(m_hIconControlPanel, GWLP_WNDPROC, (LONG_PTR)ButtonProc);
+
+
+     m_IconTitle = CreateWindowEx(
+        0, TEXT("STATIC"), L"Desktop Icon Manager",
+        WS_CHILD | WS_VISIBLE,
+        60, 10, 200, 30,
+         m_hIconControlPanel, NULL, GetModuleHandle(NULL), NULL);
+
+    m_hSavedDesktopConfigs = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"ICON LAYOUTS",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        150, 50, 110, 30,
+        m_hIconControlPanel,
+        (HMENU)SAVED_DESKTOP_LAYOUTS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+    m_hSaveDesktopLayout = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"SAVE ICONS",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        10, 50, 110, 30,
+        m_hIconControlPanel,
+        (HMENU)SAVE_DESKTOP_LAYOUT,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL
+    );
+    
+    m_hWindowsControlPanel = CreateWindowExW(
+        0,
+        L"STATIC",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        0,
+        95,
+        300,
+        150,
+        m_hwnd,
+        NULL,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL
+    );
+
+    windowWindowProc = (WNDPROC)SetWindowLongPtr(m_hWindowsControlPanel, GWLP_WNDPROC, (LONG_PTR)ButtonProc);
+
+    m_WindowTitle = CreateWindowEx(
+            0, TEXT("STATIC"), L"Window Manager",
+            WS_CHILD | WS_VISIBLE,
+            75, 10, 200, 30,
+        m_hWindowsControlPanel, NULL, GetModuleHandle(NULL), NULL);
+
     m_hCascadeButton = CreateWindowEx(
         0,
         L"BUTTON",
         L"CASCADE",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        10, 20, 110, 30,
-        m_hwnd,
+        10, 50, 110, 30,
+        m_hWindowsControlPanel,
         (HMENU)CASCADE,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
@@ -371,8 +344,8 @@ void WindowsApp::CreateControlOpts() {
         L"BUTTON",
         L"STACK",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        10, 50, 110, 30,
-        m_hwnd,
+        150, 50, 110, 30,
+        m_hWindowsControlPanel,
         (HMENU)STACK,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
@@ -382,8 +355,8 @@ void WindowsApp::CreateControlOpts() {
         L"BUTTON",
         L"SAVE LAYOUT",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        120, 20, 110, 30,
-        m_hwnd,
+        5, 100, 120, 30,
+        m_hWindowsControlPanel,
         (HMENU)SAVE_LAYOUT,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
@@ -391,48 +364,37 @@ void WindowsApp::CreateControlOpts() {
     m_hSavedConfigs = CreateWindowEx(
         0,
         L"BUTTON",
-        L"LAYOUTS",
+        L"WINDOW LAYOUTS",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        230, 20, 110, 30,
-        m_hwnd,
+        135, 100, 140, 30,
+        m_hWindowsControlPanel,
         (HMENU)VIEW_SAVED_CONFIGS,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
 
-    m_hSavedDesktopConfigs = CreateWindowEx(
+    m_hControlPanel = CreateWindowExW(
         0,
-        L"BUTTON",
-        L"LAYOUTS",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        230, 50, 110, 30,
+        L"STATIC",
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        10, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 270, 30,
         m_hwnd,
-        (HMENU)SAVED_DESKTOP_LAYOUTS,
+        NULL,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
+
+    controlWindowProc = (WNDPROC)SetWindowLongPtr(m_hWindowsControlPanel, GWLP_WNDPROC, (LONG_PTR)ButtonProc);
 
     m_hShowWindows = CreateWindowEx(
         0,
         L"BUTTON",
         L"V",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-        10, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 400, 30,
-        m_hwnd,
+        0, 0, 270, 30,
+        m_hControlPanel,
         (HMENU)SHOW_ACTIVE_WINDOWS,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
-
-    m_hSaveDesktopLayout = CreateWindowEx(
-        0,
-        L"BUTTON",
-        L"SAVE ICONS",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        120, 50, 110, 30,
-        m_hwnd,
-        (HMENU)SAVE_DESKTOP_LAYOUT,
-        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
-        NULL
-        );
-
 }
 
 ///   HANDLE BASIC WINDOW EVENTS   ///
@@ -521,7 +483,55 @@ void WindowsApp::PrintActiveWindows() {
                                                                   //EnumWindowsProc is a custom method, see BaseWindow.cpp
 }
 
- //   STACK WINDOWS   //
+void WindowsApp::WinWinShowActive() {
+    // Enumerate through active windows and create controls
+    WindowsVector.clear();
+    PrintActiveWindows();
+    int ControlY = ((WindowsVector.size() + 1) * 100) + 102;
+    RECT prevRect;
+    GetWindowRect(m_hwnd, &prevRect);
+    SetWindowPos(m_hwnd, NULL, 0, 0, prevRect.right - prevRect.left, ControlY, SWP_NOMOVE);
+    SetWindowPos(m_hControlWindow, NULL, 0, 0, prevRect.right - prevRect.left, ControlY, SW_SHOWNORMAL); // resize control window
+    DestroyWindow(m_hShowWindows);
+
+    m_hHideWindows = CreateWindowExW(
+        0,
+        L"BUTTON",
+        L"^",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD,
+        10, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 270, 30,
+        m_hwnd,
+        (HMENU)HIDE_ACTIVE_WINDOWS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+
+    for (WindowControl* ctrl : WindowsVector) {
+        SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    }
+}
+
+void WindowsApp::WinWinHideActive() {
+    for (WindowControl* ctrl : WindowsVector) {
+        SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW);
+    }
+    RECT prevRect2;
+    GetWindowRect(m_hwnd, &prevRect2);
+    SetWindowPos(m_hControlWindow, NULL, 0, 0, prevRect2.right - prevRect2.left, M_HWND_CLOSED_Y, SW_SHOWNORMAL | SW_INVALID); // resize control window
+    SetWindowPos(m_hwnd, NULL, 0, 0, prevRect2.right - prevRect2.left, M_HWND_CLOSED_Y, SWP_NOMOVE);
+    m_hShowWindows = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"V",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD,
+        10, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 270, 30,
+        m_hwnd,
+        (HMENU)SHOW_ACTIVE_WINDOWS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+    DestroyWindow(m_hHideWindows);
+}
+
+//   STACK WINDOWS   //
 
 void WindowsApp::StackWindows()
 {
@@ -541,7 +551,7 @@ void WindowsApp::StackWindows()
             L"BUTTON",
             L"EXIT STACK",
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-            10, 50, 110, 30,
+            150, 150, 110, 30,
             m_hwnd,
             (HMENU)EXIT_STACK,
             (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
@@ -549,9 +559,9 @@ void WindowsApp::StackWindows()
         m_hNextStack = CreateWindowEx(
             0,
             L"BUTTON",
-            L"NEXT STACK >",
+            L"NEXT >",
             WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-            120, 80, 110, 30,
+            210, 182, 75, 25,
             m_hwnd,
             (HMENU)NEXT_STACK,
             (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
@@ -559,9 +569,9 @@ void WindowsApp::StackWindows()
         m_hPrevStack = CreateWindowEx(
             0,
             L"BUTTON",
-            L"< PREV STACK",
+            L"< PREV",
             WS_TABSTOP | WS_VISIBLE | WS_CHILD,
-            10, 80, 110, 30,
+            125, 182, 75, 25,
             m_hwnd,
             (HMENU)PREV_STACK,
             (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
@@ -639,6 +649,23 @@ void WindowsApp::StackFiveToEight(std::vector<WindowControl*>SubVector) {
     }
 }
 
+void WindowsApp::ExitStack() {
+    stackIndex = 0;
+    DestroyWindow(m_hPrevStack);
+    DestroyWindow(m_hNextStack);
+    DestroyWindow(m_hExitStack);
+    m_hStackButton = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"STACK",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        10, 50, 110, 30,
+        m_hwnd,
+        (HMENU)STACK,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+}
+
  //   CASCADE WINDOWS   //
 
 void WindowsApp::CascadeWindows() {
@@ -648,6 +675,27 @@ void WindowsApp::CascadeWindows() {
         ShowWindow(ctrl->GetInstanceHandle(), SW_SHOWNORMAL);  // Set each window to normal mode (unmax/unmin)
         SetWindowPos(ctrl->GetInstanceHandle(), HWND_TOPMOST, stackPos, stackPos, 750, 750, NULL); // Bring current window to front
         SetWindowPos(ctrl->GetInstanceHandle(), HWND_NOTOPMOST, stackPos, stackPos, 750, 750, NULL); // Remove "TOPMOST" flag
+        stackPos += 50;
+    }
+    m_hSquish = CreateWindowEx(0,
+        L"BUTTON",
+        L"SQUISH",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        15, 185, 100, 20,
+        m_hwnd,
+        (HMENU)SQUISH,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+}
+
+void WindowsApp::SquishCascade() {
+    int stackPos = 10;
+    RECT windowRect;
+    for (WindowControl* ctrl : WindowsVector) { //Iterate through all windows in WindowsVector (all open windows)
+        GetWindowRect(ctrl->GetInstanceHandle(), &windowRect);
+        if (windowRect.top == stackPos && windowRect.left == stackPos && windowRect.right - windowRect.left == 750 && windowRect.bottom - windowRect.top == 750) {
+            ShowWindow(ctrl->GetInstanceHandle(), SW_MINIMIZE);
+        }
         stackPos += 50;
     }
 }
@@ -682,19 +730,22 @@ void WindowsApp::WinWinSaveLayout()
     for (WindowControl* ctrl : WindowsVector) {
 
         GetWindowPlacement(ctrl->GetInstanceHandle(), &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
-                                                                            // Put into WINDOWPLACEMENT object 
-        GetWindowRect(ctrl->GetInstanceHandle(), &rect);
-        pInstancePlacement.rcNormalPosition.right = rect.right;
-        pInstancePlacement.rcNormalPosition.left = rect.left;
-        pInstancePlacement.rcNormalPosition.top = rect.top;
-        pInstancePlacement.rcNormalPosition.bottom = rect.bottom;
-
+        if (!IsIconic(ctrl->GetInstanceHandle())) {                                                           // Put into WINDOWPLACEMENT object 
+            GetWindowRect(ctrl->GetInstanceHandle(), &rect);
+            pInstancePlacement.rcNormalPosition.right = rect.right;
+            pInstancePlacement.rcNormalPosition.left = rect.left;
+            pInstancePlacement.rcNormalPosition.top = rect.top;
+            pInstancePlacement.rcNormalPosition.bottom = rect.bottom;
+        }
         GetWindowThreadProcessId(ctrl->GetInstanceHandle(), &processId); 
         hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executible associated with window handle
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
         CloseHandle(hProcess);
 
         placeInfoTemp = { {"process", std::wstring(path).c_str()},// Translate WINDOWPLACEMENT to json, stick the process in the front
+            {"minimized", IsIconic(ctrl->GetInstanceHandle()) },
+            {"handle", int(ctrl->GetInstanceHandle())},
+            {"title", std::wstring(ctrl->GetInstanceTitle()).c_str()},
             {"length", pInstancePlacement.length},
             {"flags", pInstancePlacement.flags},
         {"showCmd", pInstancePlacement.showCmd },
@@ -723,11 +774,28 @@ void WindowsApp::WinWinSaveLayout()
 void WindowsApp::WinWinViewSaved() {
     std::wstring WinWinLayoutsFolder = L"SavedLayouts/";
     std::wstring layoutName;
-    int xPos = 350;
-    int yPos = 0;
+    int xPos = 15;
+    int yPos = 250;
     int i = 0;
     RECT prevRect5;
     GetWindowRect(m_hwnd, &prevRect5);
+    for (const auto& WinWinLayoutsFile : std::filesystem::directory_iterator(WinWinLayoutsFolder)) {
+
+        i++;
+        if (i >= 2) {
+            xPos = 15;
+            yPos += 30;
+            i = 0;
+        }
+        else {
+            xPos += 130;
+        }
+    }
+    SetWindowPos(m_hwnd, NULL, 0, 0, prevRect5.right - prevRect5.left, yPos + 130, SWP_NOMOVE);
+    SetWindowPos(m_hShowWindows, NULL, 10, yPos + 30, 270, 30, NULL);
+    xPos = 15;
+    yPos = 250;
+    i = 0;
     for (const auto& WinWinLayoutsFile : std::filesystem::directory_iterator(WinWinLayoutsFolder)) {
         layoutName = WinWinLayoutsFile.path().filename();
         layoutButtons.push_back(CreateWindowEx(
@@ -735,25 +803,57 @@ void WindowsApp::WinWinViewSaved() {
             L"BUTTON",
             layoutName.erase(layoutName.length() - 5).c_str(),
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-            xPos, yPos, 150, 30,
+            xPos, yPos, 130, 30,
             m_hwnd,
             (HMENU)EXECUTE_LAYOUT,
             (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
             NULL));
         i++;
-        if (i >= 3) {
-            xPos += 150;
-            yPos = 0;
+        if (i >= 2) {
+            xPos = 15;
+            yPos += 30;
             i = 0;
         }
         else {
-            yPos += 30;
+            xPos += 130;
         }
-    
 
-        SetWindowPos(m_hwnd, NULL, 0, 0, xPos + 175, prevRect5.bottom - prevRect5.top, SWP_NOMOVE);
     }
     
+    DestroyWindow(m_hSavedConfigs);
+    m_hHideSavedConfigs = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"^",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        135, 210, 140, 30,
+        m_hwnd,
+        (HMENU)HIDE_SAVED_CONFIGS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+}
+
+void WindowsApp::WinWinHideSaved() {
+    RECT prevRect3;
+    GetWindowRect(m_hwnd, &prevRect3);
+    for (HWND layoutButton : layoutButtons) {
+        DestroyWindow(layoutButton);
+    }
+    DestroyWindow(m_hHideSavedConfigs);
+    m_hSavedConfigs = CreateWindowExW(
+        0,
+        L"BUTTON",
+        L"WINDOW LAYOUTS",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        135, 210, 140, 30,
+        m_hwnd,
+        (HMENU)VIEW_SAVED_CONFIGS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+    RECT prevRect4;
+    GetWindowRect(m_hwnd, &prevRect4);
+
+    SetWindowPos(m_hwnd, NULL, 0, 0, 300, prevRect4.bottom - prevRect4.top, SWP_NOMOVE);
 }
 
 void WindowsApp::ExecuteSaved(std::wstring json) {
@@ -938,6 +1038,40 @@ void WindowsApp::ViewSavedDesktopLayouts() {
 
         SetWindowPos(m_hwnd, NULL, 0, 0, xPos + 175, prevRect5.bottom - prevRect5.top, SWP_NOMOVE);
     }
+    DestroyWindow(m_hSavedDesktopConfigs);
+    m_hHideSavedDesktopConfigs = CreateWindowEx(
+        0,
+        L"BUTTON",
+        L"<",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        230, 50, 110, 30,
+        m_hwnd,
+        (HMENU)HIDE_SAVED_DESKTOP_CONFIGS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+}
+
+void WindowsApp::HideSavedDesktopLayouts() {
+    RECT prevRect6;
+    GetWindowRect(m_hwnd, &prevRect6);
+    for (HWND layoutButton : desktopLayoutButtons) {
+        DestroyWindow(layoutButton);
+    }
+    DestroyWindow(m_hHideSavedDesktopConfigs);
+    m_hSavedDesktopConfigs = CreateWindowExW(
+        0,
+        L"BUTTON",
+        L"LAYOUTS",
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        230, 50, 110, 30,
+        m_hwnd,
+        (HMENU)SAVED_DESKTOP_LAYOUTS,
+        (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
+        NULL);
+    RECT prevRect5;
+    GetWindowRect(m_hwnd, &prevRect5);
+
+    SetWindowPos(m_hwnd, NULL, 0, 0, 430, prevRect5.bottom - prevRect5.top, SWP_NOMOVE);
 }
 
 void WindowsApp::ExecuteSavedDesktopLayout(std::wstring json) {
