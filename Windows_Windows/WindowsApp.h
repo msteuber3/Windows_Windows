@@ -172,7 +172,6 @@ private:
 
     HWND m_hWindowsControlPanel;
 
-    HWND m_hControlPanel;
 
     // Called upon window creation. Creates all child windows of m_hwnd
     HRESULT HandleCreate();

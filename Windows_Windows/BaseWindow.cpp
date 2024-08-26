@@ -89,6 +89,9 @@ public:
 
     HWND m_hControlWindow;
 
+    HWND m_hActiveWindowsControlPanel;
+
+
    static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
         BaseWindow* app = reinterpret_cast<BaseWindow*>(lParam);
         WCHAR windowTitle[256];
@@ -105,7 +108,7 @@ public:
             oss << L"Window Handle: " << hwnd << L" Title: " << windowTitle << "\r\n";
             WindowHandle = hwnd;
             app->WindowsVector.push_back(new WindowControl(
-                app->m_hControlWindow,
+                app->m_hActiveWindowsControlPanel,
                 hwnd,
                 windowTitle,
                 (app->WindowsVector.size() == 1 ? 100 : (static_cast<int>(app->WindowsVector.size() * 100)))));
