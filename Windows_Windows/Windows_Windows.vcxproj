@@ -143,6 +143,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="WindowControl.h" />
     <ClInclude Include="WindowsApp.h" />
+    <ClInclude Include="WinWinFunctions.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
