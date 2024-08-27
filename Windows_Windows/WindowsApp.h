@@ -130,6 +130,32 @@ public:
         POINT m_iconPos;
     };
 
+    int stackIndex;
+
+    void SaveDesktopLayout();
+
+    std::string ConvertToNarrowString(const std::wstring& wstr) {
+        if (wstr.empty()) {
+            return std::string();
+        }
+
+        int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
+        if (size_needed == 0) {
+            throw std::runtime_error("WideCharToMultiByte failed");
+        }
+
+        std::string str(size_needed, 0);
+        int result = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &str[0], size_needed, NULL, NULL);
+        if (result == 0) {
+            throw std::runtime_error("WideCharToMultiByte failed");
+        }
+
+        // Remove the null terminator added by WideCharToMultiByte
+        str.resize(size_needed - 1);
+
+        return str;
+    }
+
 private:
     // Main control panel window handle
     HWND m_hControlOptions;
@@ -185,6 +211,5 @@ private:
     // Called on window scroll
     void HandleScroll(WPARAM wParam);
 
-    void SaveDesktopLayout();
 
 };

@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 08/27/2024 MS-24.01.06.03 Fixed error with null terminated wide strings in execute layout
 // 08/26/2024 MS-24.01.05.01 Reworked UI
 // 08/20/2024 MS-24.01.04.02 Added preprocessor definition for closed main window height
 // 08/19/2024 MS-24.01.04.01 Added ability to save layout configurations, fixed bugs in the stack function
@@ -62,7 +63,6 @@ static std::wstring userInput;
 std::vector<HWND> layoutButtons;
 std::vector<HWND> desktopLayoutButtons;
 PCWSTR WindowsApp::ClassName() const { return L"Windows Window Extension"; }
-int stackIndex;
 WNDPROC iconWindowProc;
 WNDPROC windowWindowProc;
 WNDPROC controlWindowProc;
@@ -748,6 +748,8 @@ void WindowsApp::WinWinSaveLayout()
     WCHAR path[MAX_PATH] = L"";
     HANDLE hProcess;
     RECT rect;
+    std::wstring processPath;
+    std::wstring instanceTitle;
     for (WindowControl* ctrl : WindowsVector) {
 
         GetWindowPlacement(ctrl->GetInstanceHandle(), &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
@@ -763,10 +765,13 @@ void WindowsApp::WinWinSaveLayout()
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
         CloseHandle(hProcess);
 
-        placeInfoTemp = { {"process", std::wstring(path).c_str()},// Translate WINDOWPLACEMENT to json, stick the process in the front
+        processPath = std::wstring(path);
+        instanceTitle = std::wstring(ctrl->GetInstanceTitle());
+
+        placeInfoTemp = { {"process", ConvertToNarrowString(processPath)},// Translate WINDOWPLACEMENT to json, stick the process in the front
             {"minimized", IsIconic(ctrl->GetInstanceHandle()) },
             {"handle", int(ctrl->GetInstanceHandle())},
-            {"title", std::wstring(ctrl->GetInstanceTitle()).c_str()},
+            {"title", ConvertToNarrowString(instanceTitle)},
             {"length", pInstancePlacement.length},
             {"flags", pInstancePlacement.flags},
         {"showCmd", pInstancePlacement.showCmd },
@@ -931,7 +936,9 @@ void WindowsApp::WinWinHideSaved() {
 }
 
 void WindowsApp::ExecuteSaved(std::wstring json) {
-    std::wstring jsonFile = L"SavedLayouts/" + json + L".json";
+    if (!json.empty() && json.back() == L'\0') json.pop_back();
+    std::wstring jsonFile = L"SavedLayouts/" + json;
+    jsonFile.append(L".json");
     if (!std::filesystem::exists(jsonFile)) { // Check if it exists
         return;
     }
