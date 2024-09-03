@@ -4,6 +4,7 @@
 //===============================================
 // WinWinFunctions.cpp
 // ----------------------------------------------
+// 09/03/2024 MS-24.01.07.04 Fixed bug causing a crash when naming two files the same thing
 // 09/03/2024 MS-24.01.07.02 Moved all WinWin base functionality here for use with the command line and UI
 // 09/03/2024 MS-24.01.07.01 created
 //-----------------------------------------------
@@ -193,10 +194,17 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect)
 {
     std::wstring layoutName = GetUserInput(GetModuleHandle(NULL));
 
-    std::wstring WinWinLayoutsFile = L"SavedLayouts/" + layoutName + L".json";   // Name of json file (in SavedLayouts folder)
+    if (layoutName == L"") { layoutName = L"NewLayout"; }
 
+    std::wstring WinWinLayoutsFile = L"SavedLayouts/" + layoutName + L".json";   // Name of json file (in SavedLayouts folder)
+    
     if (!std::filesystem::exists(WinWinLayoutsFile)) { // Check if it exists, create it if not
         std::ofstream{ WinWinLayoutsFile };
+    }
+
+    if (std::filesystem::exists(WinWinLayoutsFile)) { // Check if it exists, create it if not
+        std::ofstream file(WinWinLayoutsFile, std::ios::trunc);
+        file.close();
     }
 
     std::fstream LayFile;

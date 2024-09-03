@@ -711,8 +711,8 @@ void WindowsApp::ExitStack() {
         L"BUTTON",
         L"STACK",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        10, 50, 110, 30,
-        m_hwnd,
+        150, 50, 110, 30,
+        m_hWindowsControlPanel,
         (HMENU)STACK,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
