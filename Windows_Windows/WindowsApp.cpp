@@ -61,12 +61,7 @@ WindowsApp::WindowsApp() {}
 std::wostringstream WindowsApp::oss; //ostream string that contains window control panel titles
 HWND WindowsApp::WindowHandle; // Window handle that holds info for creation of the windows vector
 static std::wstring userInput;
-std::vector<HWND> layoutButtons;
-std::vector<HWND> desktopLayoutButtons;
-PCWSTR WindowsApp::ClassName() const { return L"Windows Window Extension"; }
 WNDPROC iconWindowProc;
-WNDPROC windowWindowProc;
-WNDPROC controlWindowProc;
 
 ///   CALLBACK FUNCTIONS   ///
 
@@ -202,8 +197,7 @@ LRESULT CALLBACK WindowsApp::ButtonProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPA
         SendMessage(GetParent(hwnd), uMsg, wParam, lParam);
         return 0; 
     }
-    return CallWindowProc(iconWindowProc, hwnd, uMsg, wParam, lParam);
-
+    return CallWindowProcW(iconWindowProc, hwnd, uMsg, wParam, lParam);
 }
 
 
@@ -273,6 +267,7 @@ HRESULT WindowsApp::HandleCreate() {
 
 void WindowsApp::CreateControlOpts() {
     
+    // Icon Control
     m_hIconControlPanel = CreateWindowEx(
         0,
         L"STATIC",
@@ -318,6 +313,8 @@ void WindowsApp::CreateControlOpts() {
         NULL
     );
     
+    // Window Control
+
     m_hWindowsControlPanel = CreateWindowExW(
         0,
         L"STATIC",
@@ -386,7 +383,7 @@ void WindowsApp::CreateControlOpts() {
         NULL);
 
   
-
+    // Active Window Control
     m_hShowWindows = CreateWindowEx(
         0,
         L"BUTTON",
@@ -399,6 +396,8 @@ void WindowsApp::CreateControlOpts() {
         NULL);
 }
 
+///   UTILITIIES   ///
+
 std::vector<HWND> WindowsApp::ExtractHwnds(std::vector<WindowControl*> windowControls) {
     std::vector<HWND> hwnds;
     hwnds.reserve(windowControls.size()); // Reserve space to avoid reallocations
@@ -409,6 +408,29 @@ std::vector<HWND> WindowsApp::ExtractHwnds(std::vector<WindowControl*> windowCon
 
     return hwnds;
 }
+
+std::string WindowsApp::ConvertToNarrowString(const std::wstring& wstr) {
+    if (wstr.empty()) {
+        return std::string();
+    }
+
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
+    if (size_needed == 0) {
+        throw std::runtime_error("WideCharToMultiByte failed");
+    }
+
+    std::string str(size_needed, 0);
+    int result = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &str[0], size_needed, NULL, NULL);
+    if (result == 0) {
+        throw std::runtime_error("WideCharToMultiByte failed");
+    }
+
+    // Remove the null terminator added by WideCharToMultiByte
+    str.resize(size_needed - 1);
+
+    return str;
+}
+
 
 ///   HANDLE BASIC WINDOW EVENTS   ///
 
@@ -480,7 +502,7 @@ void WindowsApp::HandleResize(){
 
 ///   WINDOW RESOURCES   ///
 
-std::wstring GetUserInput(HINSTANCE hInstance) {
+std::wstring WindowsApp::GetUserInput(HINSTANCE hInstance) {
     userInput.clear(); // Clear previous input
     if (DialogBox(hInstance, MAKEINTRESOURCE(IDD_SIMPLE_INPUT_DIALOG), NULL, DialogProc) == IDOK) {
         return userInput;
@@ -489,7 +511,7 @@ std::wstring GetUserInput(HINSTANCE hInstance) {
 }
 
 ///   HANDLE WINDOWS_WINDOWS EVENTS   ///
- //   PRINT ACTIVE WINDOWS   //  
+//    PRINT ACTIVE WINDOWS   //  
 
 void WindowsApp::PrintActiveWindows() {
     EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(this)); // Enumerate through the windows with this callback function. 
@@ -720,7 +742,6 @@ void WindowsApp::SquishCascade() {
 void WindowsApp::WinWinSaveLayout()
 {
     WinWinFunctions::SaveWindowLayout(ExtractHwnds(WindowsVector));
-
 }
 
 void WindowsApp::WinWinViewSaved() {
