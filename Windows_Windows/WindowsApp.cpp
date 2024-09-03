@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 09/03/2024 MS-24.01.07.02 Moved all WinWin base functionality to WinWinFunctions for use with the command line and UI
 // 08/27/2024 MS-24.01.06.03 Fixed error with null terminated wide strings in execute layout
 // 08/26/2024 MS-24.01.05.01 Reworked UI
 // 08/20/2024 MS-24.01.04.02 Added preprocessor definition for closed main window height
@@ -24,7 +25,7 @@
 // 07/25/2024 MS-24.01.02.2 Updated to be compatible with template window
 // 07/23/2024 MS-24.01.01.0 created
 //-----------------------------------------------
-// Main window source code
+// Main window UI source code
 
 #include "WindowsApp.h"
 

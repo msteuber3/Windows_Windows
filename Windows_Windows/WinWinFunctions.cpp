@@ -1,3 +1,15 @@
+//***********************************************
+// WindowsWindows
+// Copyright 2024 Accurate Tool Company, Inc.
+//===============================================
+// WinWinFunctions.cpp
+// ----------------------------------------------
+// 09/03/2024 MS-24.01.07.02 Moved all WinWin base functionality here for use with the command line and UI
+// 09/03/2024 MS-24.01.07.01 created
+//-----------------------------------------------
+// WinWin base functions
+
+
 #include "WinWinFunctions.h"
 
 static std::wstring userInput;
