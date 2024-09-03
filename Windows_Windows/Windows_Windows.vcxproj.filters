@@ -27,6 +27,9 @@
     <ClCompile Include="WindowControl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WinWinFunctions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowsApp.h">

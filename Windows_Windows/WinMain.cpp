@@ -39,7 +39,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 	std::string cmdLine(pCmdLine);
    std::wstring layout;
    std::string command;
-   if (__argc > 1) {
+   if (__argc > 2) {
        command = __argv[1];
        params = __argv[2];
        int size_needed = MultiByteToWideChar(CP_UTF8, 0, params.c_str(), -1, NULL, 0);
@@ -50,43 +50,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
    WindowsApp app;
    int id;
 	if (cmdLine == "stack") {
-		app.Initialize();
-		app.StackWindows();
+		WinWinFunctions::Stack(WinWinFunctions::GetActiveWindows());
 		return 0;
 	}
    else if (cmdLine == "cascade") {
-       app.Initialize();
-       app.CascadeWindows();
+        WinWinFunctions::Cascade(WinWinFunctions::GetActiveWindows());
        return 0;
    }
    else if (cmdLine == "squish") {
-       app.Initialize();
-       app.SquishCascade();
-       return 0;
-   }
-   else if (cmdLine == "squish") {
-       app.Initialize();
-       app.SquishCascade();
+        WinWinFunctions::Squish(WinWinFunctions::GetActiveWindows());
        return 0;
    }
    else if (cmdLine == "SaveLayout") {
-       app.Initialize();
-       app.WinWinSaveLayout();
+       WinWinFunctions::SaveWindowLayout(WinWinFunctions::GetActiveWindows());
        return 0;
    }
    else if (command == "ExecuteLayout") {
-       app.Initialize();
-       app.ExecuteSaved(layout);
+       WinWinFunctions::ExecuteWindowLayout(layout, WinWinFunctions::GetActiveWindows());
        return 0;
    }
    else if (cmdLine == "SaveDesktop") {
-       app.Initialize();
-       app.SaveDesktopLayout();
+       WinWinFunctions::SaveDesktopLayout();
        return 0;
    }
    else if (__argv[1] == "ExecuteDesktop") {
-       app.Initialize();
-       app.ExecuteSavedDesktopLayout(layout);
+       WinWinFunctions::ExecuteDesktopLayout(layout);
        return 0;
    }
 	if (SUCCEEDED(app.Initialize())) {

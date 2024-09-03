@@ -27,11 +27,15 @@
 #include <sstream>
 #include <Psapi.h>
 #include "resource.h"
+#include "WinWinFunctions.h"
 
 class WindowsApp : public BaseWindow<WindowsApp> {
 
 public:
     WindowsApp();
+
+    std::vector<HWND> ExtractHwnds(std::vector<WindowControl*> windowControls);
+
 
     // Create main window (calls Create() function from BaseWindow.cpp
     HRESULT Initialize();
