@@ -37,17 +37,26 @@ public:
 
 
     ///   GLOBALS   ///
+    //Index for the StackWindows() multilayered stack function
     int stackIndex;
+    
+    // Vector of saved window layout buttons
     std::vector<HWND> layoutButtons;
+    // Vector of saved desktop icon layout buttons
     std::vector<HWND> desktopLayoutButtons;
+
     // Main window class name
     PCWSTR ClassName() const { return L"Windows Window Extension"; }
+    
+    // Window procedure for the Window Control window
     WNDPROC windowWindowProc;
+    // Window procedure for the active windows control panel 
     WNDPROC controlWindowProc;
 
     
     ///   STRUCTS   ///
 
+    // Struct representation of a JSON saved window
     struct SavedWindow {
         SavedWindow(std::string process,
             UINT flags,
@@ -80,6 +89,7 @@ public:
         }
     };
 
+    // Struct representation of a JSON saved desktop icon
     struct SavedIcon {
         SavedIcon(std::string iconName,
             POINT iconPos) {
@@ -241,9 +251,7 @@ public:
 
     //   STACK WINDOWS   //
 
-    
-    // Called when STACK button is pressed
-    /**
+        /**
     * @brief Stacks all active window
     * 
     * Called when STACK is clicked. If there are 8 or fewer windows open, it delegates the stacking to the static WinWinFunctions Stack() function. If there are more than 8, it initializes 
@@ -322,10 +330,44 @@ public:
     /**
      * @brief Displays a dropdown of buttons that activate window layouts
      * 
+     * Opens the SavedLayouts folder and creates a button for each JSON file inside. It then rearranges the control windows in the following order: 
+
+     * 1. Get the position of the old WindowsControl rect   
      * 
+     * 2. Get the position of the old m_hwnd  
+     * 
+     * 3. Get the position of the new WindowsControl rect  
+     *      a. x - 0  
+     *      b. y - 0 | SWP_NOMOVE  
+     *      c. cx - old WindowControlRectRight - old WindowControlRectLeft  
+     *      d. cy - yPos + 40 for last button + buffer  
+     * 
+     * 4. set the position of the new m_hwnd  
+     *      a. x - 0  
+     *      b. y - 0 | SWP_NOMOVE  
+     *      c. cx - old m_hwnd right - old m_hwnd left  
+     *      d. cy - old m_hwnd bottom + yPos + 40 
+
+     * 5. set the position of the new ActiveWindowsRect  
+     *      a. x - 0  
+     *      b. y - Bottom of new WindowsControl rect  
+     *      c. cx - 0  
+     *      d. cy - 0 | SWP_NOSIZE  
+     * 
+     * 6. Set the position of the new WindowsControl rect  
+     * 
+     * After the windows are resized, it generates the buttons by iterating over the directory and places three buttons next to each other every thirty pixels 
+     * before moving to the next line and repeating the process until it reaches the end of the directory.
+     * It then destroys the m_hSavedConfigs and creates a m_hHideSavedConfigs in its place.
      */
     void WinWinViewSaved();
 
+    /**
+     * @brief Hides the saved window layout buttons 
+     * 
+     * Destroys each of the layout buttons by iterating through the layout buttons vector, destroys them_hHideSavedConfigs button, and recreates the m_hSavedConfigs button. 
+     * Then, it resets the control panels to their previous states. 
+     */
     void WinWinHideSaved();
 
     /**
@@ -346,8 +388,32 @@ public:
     */
     void SaveDesktopLayout();
 
+    /**
+     * @brief Creates a dropdown of buttons that activate different desktop icon layouts
+     *
+     * Rearranges the control windows in the following order:
+     * m_hwnd : 
+     *  length - same as before
+     *  height - previous height + the difference in height of the new icon control panel
+     * m_hActiveWindowsControlPanel :
+     *  y coordinate - previous y coordinate + the difference in height of the new icon control panel
+     * m_hWindowsControlPanel : 
+     *  y coordinate - previous y coordinate + the difference in height of the new icon control panel
+     * m_hIconControlPanel :
+     *  length - same as before
+     *  height - the y position of the last icon button + 40
+     * 
+     * It then iterates through the SavedDesktopLayouts directory and places three buttons horizontally spaced 30 pixels apart
+     * on each row until it gets to the end of the directory
+     */
     void ViewSavedDesktopLayouts();
 
+    /**
+     * @brief Hides each of the saved icon buttons 
+     * 
+     * Destroys every saved icon button by iterating through the desktopLayoutButtons vector, destroys m_hHideSavedDesktopConfigs, and recreates m_hSavedDesktopConfigs.
+     * It then restores each control panel to its previous position.
+     */
     void HideSavedDesktopLayouts();
 
   /**
@@ -378,41 +444,57 @@ private:
     // Main control panel window handle
     HWND m_hControlOptions;
 
+    // Cascade button window handle
     HWND m_hCascadeButton;
 
     // Stack button window handle
     HWND m_hStackButton;
 
+    // Next Stack button window handle
     HWND m_hNextStack;
 
+    // Previous Stack button window handle
     HWND m_hPrevStack;
 
+    // Exit multilayered stack mode button window handle
     HWND m_hExitStack;
 
     // Save layout button window handle
     HWND m_hSaveWinLayout;
 
+    // Show active windows button window handle
     HWND m_hShowWindows;
 
+    // Hide active windows button window handle
     HWND m_hHideWindows;
 
+    // Show saved window configurations button window handle
     HWND m_hSavedConfigs;
 
+    // Hide saved window configurations button window handle
     HWND m_hHideSavedConfigs;
 
+    // Save desktop icons button window handle
     HWND m_hSaveDesktopLayout;
 
+    // Show saved desktop icons button window handle
     HWND m_hSavedDesktopConfigs;
 
+    // Hide saved desktop icons button window handle
     HWND m_hHideSavedDesktopConfigs;
 
+    // Squish button window handle
     HWND m_hSquish;
 
+    // Title text for the Windows control panel
     HWND m_WindowTitle;
 
+    // Title text for the Icon control panel
     HWND m_IconTitle;
 
+    // Icon control Window handle
     HWND m_hIconControlPanel;
 
+    // Windows control window handle
     HWND m_hWindowsControlPanel;
 };
