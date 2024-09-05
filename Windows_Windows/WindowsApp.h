@@ -10,6 +10,11 @@
 // 07/23/2024 MS-24.01.01.00 created
 //-----------------------------------------------
 // Main window header code
+//
+// Master code for UI functionality. Creates the main window and all child windows that aren't members of the ControlWindow class. 
+// Contains HandleMessage(), which handles all events sent to the main window. 
+// m_hwnd is the top level of the windows hierarchy, it is a parent to everything you see on screen.
+
 
 #pragma once
 #include <iostream>

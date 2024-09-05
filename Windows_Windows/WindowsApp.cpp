@@ -5,16 +5,13 @@
 // WindowsApp.cpp
 // ----------------------------------------------
 // 09/03/2024 MS-24.01.07.02 Moved all WinWin base functionality to WinWinFunctions for use with the command line and UI
-// 08/27/2024 MS-24.01.06.03 Fixed error with null terminated wide strings in execute layout
 // 08/26/2024 MS-24.01.05.01 Reworked UI
 // 08/20/2024 MS-24.01.04.02 Added preprocessor definition for closed main window height
 // 08/19/2024 MS-24.01.04.01 Added ability to save layout configurations, fixed bugs in the stack function
 // 08/16/2024 MS-24.01.03.06 Refactored
 // 08/15/2024 MS-24.01.03.05 Fixed windows stack
-// 08/13/2024 MS-24.01.03.04 Added (currently useless) menu, added (currently useless) save Desktop Icons button, fixed execute layout button
-// 08/13/2024 MS-24.01.03.03 Fixed UI bugs
-// 08/12/2024 MS-24.01.03.03 Added Windows sstack feature, renamed old stack to cascade
-// 08/12/2024 MS-24.01.03.02 Fixed bugs surrounding printing active windows
+// 08/13/2024 MS-24.01.03.04 Added (currently useless) menu, added (currently useless) save Desktop Icons button
+// 08/12/2024 MS-24.01.03.03 Added Windows stack feature, renamed old stack to cascade
 // 08/12/2024 MS-24.01.03.01 Added functionality to executing saved layouts
 // 08/01/2024 MS-24.01.02.10 Added controls for viewing saved layouts, updated json folder to include multiple files for different layouts
 // 08/01/2024 MS-24.01.02.09 Added dropdown menu to hide active window list
@@ -26,10 +23,14 @@
 // 07/23/2024 MS-24.01.01.0 created
 //-----------------------------------------------
 // Main window UI source code
+//
+// Master code for UI functionality. Creates the main window and all child windows that aren't members of the ControlWindow class. 
+// Contains HandleMessage(), which handles all events sent to the main window. 
+// m_hwnd is the top level of the windows hierarchy, it is a parent to everything you see on screen.
 
 #include "WindowsApp.h"
 
-
+// Button IDs
 #define CASCADE 1
 #define SAVE_LAYOUT 2
 #define SHOW_ACTIVE_WINDOWS 3
@@ -47,6 +48,7 @@
 #define EXECUTE_DESKTOP_LAYOUT 15
 #define SQUISH 16
 
+// Fixed window sizes
 #define SHOW_ACTIVE_WINDOWS_BUTTON_Y 250
 #define M_HWND_CLOSED_Y 355
 #define WINDOWS_CONTROL_CLOSED_Y 150
@@ -251,7 +253,6 @@ HRESULT WindowsApp::HandleCreate() {
         SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW);
     }
     int ControlY = 400;
-    //SetWindowPos(m_hControlWindow, NULL, 0, 0, 500, ControlY, SW_SHOWNORMAL); // resize control window
     SCROLLINFO si; // Set scroll information
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_RANGE | SIF_PAGE;

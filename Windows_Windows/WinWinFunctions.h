@@ -7,8 +7,14 @@
 // 09/03/2024 MS-24.01.07.02 Moved all WinWin base functionality here for use with the command line and UI
 // 09/03/2024 MS-24.01.07.01 created
 //-----------------------------------------------
-// WinWin base functions
+// Header file for WinWin base functions
+// 
+// Contains static class WinWinFunctions which performs all window operations independent of the UI.
+// These functions can be called from anywhere and provides a method GetActiveWindows that returns 
+// a vector of HWNDS for every active window. This can be passed to any of the WinWin functions allowing
+// any window operations to occur from this class.
 
+#pragma once
 
 #include <string>
 #include <iostream>
@@ -26,13 +32,40 @@
 #include <shellapi.h>
 #include <algorithm>
 
-#pragma once
 static class WinWinFunctions {
 public:
 
+	/**
+	 * @brief Callback function to add every active window to a vector
+	 * 
+	 * Get a pointer to the WindowHwndVector from the lParam, then check the title to make sure it isn't 
+	 * Program Manager, Windows Input Experience, Windows Shell Experience Host, the Windows Windows UI, or the Visual Studio window running Windows Windows
+	 * The first 3 are always active even when their windows are closed and they disrupt core WinWin functionality by messing up the count,
+	 * WinWin is excluded to prevent it from being impacted by itself, and Visual Studio is only excluded if it is running WinWin for my own sanity during development/
+	 * After that, it pushes back the enumerated window handle to the vector pointer
+	 * 
+	 * @param hwnd The handle to the current window in the enumeration, sort of like i in a for loop
+	 * @param lParam Contains user defined parameters
+	 * @return Success code as a BOOL
+	 */
 	static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 
+	/**
+	 * @brief Get every active window
+	 * 
+	 * Calls EnumWindowsProc callback function to add every active HWND to a vector, then sorts the vector alphabetically by window title
+	 * 
+	 * @return Every active window as a vector of HWNDs
+	 */
 	static std::vector<HWND> GetActiveWindows();
+
+	/**
+	 * @brief Utility function to compare window titles
+	 * @param a First window to compare
+	 * @param b Second window to compare
+	 * @return True if a is first alphabetically, False if b is first
+	 */
+	bool compareHwnd(HWND a, HWND b);
 
 	/**
 	 * @brief Stack windows vertically to fill the screen 

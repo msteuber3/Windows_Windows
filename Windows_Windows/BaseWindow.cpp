@@ -8,8 +8,17 @@
 // 07/25/2024 MS-24.0.02.04 - Added Window enumeration function to access all active windows 
 // 07/25/2024 MS-24.01.01.01 created
 //-----------------------------------------------
-// Template for all window classes so that you can manage the state of the application through the WindowProc callback function
-// 07/25/2024 - MICROSOFT PROVIDED CODE
+// Template for main window class
+// 
+// This template class is derived from Microsoft provided code is inherited by the WindowsApp class to provide key functionality. 
+// Methods provided directly from Microsoft are denoted as such.
+// 
+// WindowProc Callback (MICROSOFT) - Serves as the jumping-off point for m_hwnd messages. 
+//                                   Allows for tracking of the application state and passes messages to HandleMessage in WindowsApp
+// Create (MICORSOFT) - Creates m_hwnd
+// EnumWindowsProc - Window enumeration callback method, is called to create the vector of WindowControls
+// WindowsVector - The vector of WindowControls
+// m_hwnd - Main window handle
 
 #pragma once
 #include <Windows.h>
@@ -25,6 +34,7 @@ template <class DERIVED_TYPE>
 class BaseWindow
 {
 public:
+    // BaseWindow WindowProc, allows for state management of m_hwnd. Provided by Microsoft.
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         DERIVED_TYPE* pThis = NULL;
@@ -55,6 +65,7 @@ public:
 
     virtual ~BaseWindow() {}
 
+    // Window creation function, called in WindowsApp
     BOOL Create(
         PCWSTR lpWindowName,
         DWORD dwStyle,
@@ -85,13 +96,26 @@ public:
         return (m_hwnd ? TRUE : FALSE);
     }
 
-    HWND Window() const { return m_hwnd; }
+    HWND Window() const { return m_hwnd; } // Return m_hwnd
 
     HWND m_hControlWindow;
 
-    HWND m_hActiveWindowsControlPanel;
+    HWND m_hActiveWindowsControlPanel; // The ActiveWindowControlPanel, declared here and created in WindowsApp
 
-
+   /**
+    * @brief Callback method to handle window enumeration and create the vector of WindowControls
+    * 
+    * Creates a pointer to a BaseWindow which is the instance of BaseWindow (or more likely a child of BaseWindow) that is calling the enumeration method.
+    * It then checks the title and immediately returns if Program Manager, Windows Input Experience, Windows Shell Experience Host, the Windows Windows UI, 
+    * or the Visual Studio window running Windows Windowsa are the current window, exluding them from the vector. 
+	* The first 3 are always active even when their windows are closed and they disrupt core WinWin functionality by messing up the count,
+	* WinWin is excluded to prevent it from being impacted by itself, and Visual Studio is only excluded if it is running WinWin for my own sanity during development.
+    * It then creates a new instance of WindowControl and adds it to the WindowsVector.    * 
+    * 
+    * @param hwnd Current window in enumeration
+    * @param lParam Stores user defined variables, in this case a pointer the instance of WindowsApp calling the enumeration function
+    * @return Success code as BOOL
+    */
    static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
         BaseWindow* app = reinterpret_cast<BaseWindow*>(lParam);
         WCHAR windowTitle[256];
@@ -105,26 +129,34 @@ public:
             if (std::wstring(windowTitle) == L"Windows Window Extension Window" || std::wstring(windowTitle) == L"Windows_Windows (Running) - Microsoft Visual Studio") {
                 return TRUE;
             }
-            oss << L"Window Handle: " << hwnd << L" Title: " << windowTitle << "\r\n";
+            // ^ Exclude Program Manager, Windows Input Experience, Windows Shell Experience Host, the Windows Windows UI, and the Visual Studio window running Windows Windows from the vector
+            oss << L"Window Handle: " << hwnd << L" Title: " << windowTitle << "\r\n"; // Format the title to put in the oss
             WindowHandle = hwnd;
-            app->WindowsVector.push_back(new WindowControl(
-                app->m_hActiveWindowsControlPanel,
+            app->WindowsVector.push_back(new WindowControl( // Add a new WindowControl to the WindowVector
+                app->m_hActiveWindowsControlPanel, 
                 hwnd,
                 windowTitle,
-                (app->WindowsVector.size() == 1 ? 100 : (static_cast<int>(app->WindowsVector.size() * 100)))));
+                (app->WindowsVector.size() == 1 ? 100 : (static_cast<int>(app->WindowsVector.size() * 100))))); // Set the position of the control to 100 times the size of the vector at the tiem of control creation
         }
         return TRUE;
     }
 
 protected:
-
+    // Declaration of main window class name
     virtual PCWSTR  ClassName() const = 0;
+
+    // Declaration of HandleMessage method, defined in WindowsApp
     virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) = 0;
 
+    // Declaration of main window handle
     HWND m_hwnd;
+    
+    // Declaration of window handle, stores the currently enumerated window handle in the EnumWindowsProc fucntion
     static HWND WindowHandle;
-    static std::wostringstream oss;
-    std::vector<WindowControl*> WindowsVector;
 
-   
+    // Declaration of title ostringstream to be passed to WindowControls
+    static std::wostringstream oss;
+
+    // Declaration of WindowsVector
+    std::vector<WindowControl*> WindowsVector;   
 };

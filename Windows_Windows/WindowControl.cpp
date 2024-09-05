@@ -4,11 +4,17 @@
 //===============================================
 // WindowsControl.cpp
 // ----------------------------------------------
-// 08/19/2024 MS-24.01.04.01 Fixed a bug preventing access to sub control buttons
-// 07/31/2024 MS-24.01.02.06 Updated child window size for sub control windows - buttons now all work properly 
+// 07/31/2024 MS-24.01.02.06 Updated child window size for sub control windows
 // 07/23/2024 MS-24.01.01.0 created
 //-----------------------------------------------
 // Control Window source code
+// 
+// Contains WindowControl class. WindowControls are the WinWin UI representation of the active windows, so each window has an associated window control 
+// that WinWin operates on. The WindowsApp master file contains a vector of WindowControls which functions as a list of all of the user's active windows,
+// and this list can be refreshed by displaying the window list. 
+// Physically, window controls are each of the rectangles you see containing minimize, maximize, and close buttons when you display the window list.
+
+
 
 #include "WindowControl.h"
 

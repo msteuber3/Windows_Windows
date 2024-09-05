@@ -4,11 +4,15 @@
 //===============================================
 // WinWinFunctions.cpp
 // ----------------------------------------------
-// 09/03/2024 MS-24.01.07.04 Fixed bug causing a crash when naming two files the same thing
 // 09/03/2024 MS-24.01.07.02 Moved all WinWin base functionality here for use with the command line and UI
 // 09/03/2024 MS-24.01.07.01 created
 //-----------------------------------------------
-// WinWin base functions
+// Source code for WinWin base functions
+// 
+// Defines functions for static class WinWinFunctions which performs all window operations independent of the UI.
+// These functions can be called from anywhere and provides a method GetActiveWindows that returns 
+// a vector of HWNDS for every active window. This can be passed to any of the WinWin functions allowing
+// any window operations to occur from this class.
 
 
 #include "WinWinFunctions.h"
@@ -51,16 +55,17 @@ BOOL CALLBACK WinWinFunctions::EnumWindowsProc(HWND hwnd, LPARAM lParam) {
         if (std::wstring(windowTitle) == L"Windows Window Extension Window" || std::wstring(windowTitle) == L"Windows_Windows (Running) - Microsoft Visual Studio") {
             return TRUE;
         }
+        // ^ Exclude Program Manager, Windows Input Experience, Windows Shell Experience Host, the Windows Windows UI, and the Visual Studio window running Windows Windows from the vector
         WindowHwndVector->push_back(hwnd);
     }
     return TRUE;
 }
 
-bool compareHwnd(HWND a, HWND b) { // Sort windows by title alphabetically
+bool WinWinFunctions::compareHwnd(HWND a, HWND b) { // Sort windows by title alphabetically
     char titleA[256], titleB[256];
     GetWindowTextA(a, titleA, sizeof(titleA));
     GetWindowTextA(b, titleB, sizeof(titleB));
-    return std::string(titleA) < std::string(titleB);
+    return std::string(titleA) < std::string(titleB); // Reutrn True if a is first alphabetically, False if b is first 
 }
 
 std::vector<HWND> WinWinFunctions::GetActiveWindows()
