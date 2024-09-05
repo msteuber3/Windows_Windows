@@ -1,6 +1,6 @@
 //***********************************************
 // WindowsWindows
-// Copyright 2024 Accurate Tool Company, Inc.
+// Copyright 2024 Michael Steuber
 //===============================================
 // WinWinFunctions.h
 // ----------------------------------------------
@@ -158,7 +158,8 @@ public:
 	 *		   --->SHELLDLL_DefView
 	 *						  -------->SysListView32
 	 *		Use the handle of SysListView32 to get the number of desktop icons and the process id of SysListView32, open the process to read and write. 
-	 *		Then, allocate virtual memory in the SysListView32 process for 3 objects: the LPPOINT (special windows type for pointer to a point object) of the icon, a pointer to the LVITEM (list view item, recieves info about the icon), and the text of the icon as a LPWSTR (pointer to a WCHAR)
+	 *		Then, allocate virtual memory in the SysListView32 process for 3 objects: the LPPOINT (special windows type for pointer to a point object) of the icon, 
+	 *      a pointer to the LVITEM (list view item, recieves info about the icon), and the text of the icon as a LPWSTR (pointer to a WCHAR)
 	 *		You'll also need a WCHAR for the itemName, a POINT for the icon position, and a SIZE_T object to specify the number of bytes to read from the SysListView32 process
 	 *		Got it? Good. Now we can move on; we'll be back to these very soon. 
 	 *  4. Iterate over the number of desktop icons you retrieved in step 3: 
@@ -202,9 +203,11 @@ public:
 	 *		I'm so glad windows made this simple and easy to understand. yay.  
 	 * 6. Iterate over the vector of SavedIcons and compare the saved names to the itemName. 
 	 *	  When a match is found, send a message to SysListView32 telling it to set the item at index i to the (x,y) position in the SavedIcon struct
-	 * 7. After the loop reaches the last icon, free the virtually allocated memory and close the HANDLE to the SysListView32 process (NOT the process itself, this will cause bad things to happen. Windows will lay a curse upon your family.)
+	 * 7. After the loop reaches the last icon, free the virtually allocated memory and close the HANDLE to the SysListView32 process 
+	      (NOT the process itself, this will cause bad things to happen. Windows will lay a curse upon your family.)
 
-	 * @param json wide string of the name of the json file WITHOUT .json at the end or the directory at the beginning. This is the same text that the user entered when creating the layout and is retrieved from the text of the button if triggered through the UI or the first parameter of the "ExecuteDesktop" command on the command line. 
+	 * @param json wide string of the name of the json file WITHOUT .json at the end or the directory at the beginning. 
+	 *		  This is the same text that the user entered when creating the layout and is retrieved from the text of the button if triggered through the UI or the first parameter of the "ExecuteDesktop" command on the command line. 
 	 */
 	static void ExecuteDesktopLayout(std::wstring json);
 

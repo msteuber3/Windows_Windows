@@ -1,6 +1,6 @@
 //***********************************************
 // WindowsWindows
-// Copyright 2024 Accurate Tool Company, Inc.
+// Copyright 2024 Michael Steuber
 //===============================================
 // WindowsControl.cpp
 // ----------------------------------------------
