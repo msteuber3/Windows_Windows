@@ -90,33 +90,9 @@ void WinWinFunctions::Stack(std::vector<HWND> WindowVect)
     }
 }
 
-void WinWinFunctions::StackWindowsCallback(std::vector<HWND> WindowVect)
-{
-    int winFunStackIndex = 0;
-
-    int lastVector = WindowVect.size() % 8;
-    int subVectorCount = (floor(float(WindowVect.size()) / float(8))) + (lastVector == 0 ? 0 : 1);
-
-    std::vector<HWND> SubVector;
-    for (int i = 0; i < 8; i++) {
-        if (WindowVect.size() <= (winFunStackIndex * 8) + i) {
-            break;
-        }
-        SubVector.push_back(WindowVect[(winFunStackIndex * 8) + i]);
-    }
-    if (SubVector.size() <= 4) {
-        StackFourOrLess(SubVector);
-    }
-    else if (SubVector.size() <= 8) {
-        StackFiveToEight(SubVector);
-    }
-    SubVector.clear();
-}
-
 void WinWinFunctions::StackFourOrLess(std::vector<HWND> WindowVector) {
     int stackFactorY;
     int stackPosy = 0;
-    int i = 0;
     stackFactorY = GetSystemMetrics(SM_CYSCREEN) / WindowVector.size();
     for (HWND ctrl : WindowVector) {
         ShowWindow(ctrl, SW_RESTORE);
@@ -124,7 +100,6 @@ void WinWinFunctions::StackFourOrLess(std::vector<HWND> WindowVector) {
         SetWindowPos(ctrl, HWND_TOPMOST, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
         SetWindowPos(ctrl, HWND_NOTOPMOST, 0, stackPosy, GetSystemMetrics(SM_CXSCREEN), stackFactorY, NULL);
         stackPosy += stackFactorY;
-        i++;
     }
 }
 
@@ -157,6 +132,29 @@ void WinWinFunctions::StackFiveToEight(std::vector<HWND> WindowVector) {
             stackPosy = 0;
         }
     }
+}
+
+void WinWinFunctions::StackWindowsCallback(std::vector<HWND> WindowVect)
+{
+    int winFunStackIndex = 0;
+
+    int lastVector = WindowVect.size() % 8;
+    int subVectorCount = (floor(float(WindowVect.size()) / float(8))) + (lastVector == 0 ? 0 : 1);
+
+    std::vector<HWND> SubVector;
+    for (int i = 0; i < 8; i++) {
+        if (WindowVect.size() <= (winFunStackIndex * 8) + i) {
+            break;
+        }
+        SubVector.push_back(WindowVect[(winFunStackIndex * 8) + i]);
+    }
+    if (SubVector.size() <= 4) {
+        StackFourOrLess(SubVector);
+    }
+    else if (SubVector.size() <= 8) {
+        StackFiveToEight(SubVector);
+    }
+    SubVector.clear();
 }
 
 void WinWinFunctions::Cascade(std::vector<HWND> WindowVect) {
@@ -202,7 +200,7 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect)
         std::ofstream{ WinWinLayoutsFile };
     }
 
-    if (std::filesystem::exists(WinWinLayoutsFile)) { // Check if it exists, create it if not
+    if (std::filesystem::exists(WinWinLayoutsFile)) { // Check if it exists, delete contents if it does
         std::ofstream file(WinWinLayoutsFile, std::ios::trunc);
         file.close();
     }
@@ -224,10 +222,9 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect)
     std::wstring processPath;
     std::wstring instanceTitle;
     for (HWND ctrl : WindowVect) {
-
+        GetWindowRect(ctrl, &rect);
         GetWindowPlacement(ctrl, &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
-        if (!IsIconic(ctrl)) {                                                           // Put into WINDOWPLACEMENT object 
-            GetWindowRect(ctrl, &rect);
+        if (IsIconic(ctrl)) {                                                           // Put into WINDOWPLACEMENT object 
             pInstancePlacement.rcNormalPosition.right = rect.right;
             pInstancePlacement.rcNormalPosition.left = rect.left;
             pInstancePlacement.rcNormalPosition.top = rect.top;
@@ -360,18 +357,18 @@ void WinWinFunctions::SaveDesktopLayout()
     }
 
     HWND hProgMan = FindWindow(L"Progman", NULL);
-    HWND hShellView = FindWindowEx(hProgMan, NULL, L"SHELLDLL_DefView", NULL);
+    HWND hShellView = FindWindowExW(hProgMan, NULL, L"SHELLDLL_DefView", NULL);
     FindWindowEx(hShellView, NULL, L"SysListView32", NULL);
 
-    HWND hDesktopListView = FindWindowEx(hShellView, NULL, L"SysListView32", NULL);
+    HWND hDesktopListView = FindWindowEx(hShellView, NULL, L"SysListView32", NULL); // Drill down into SysListView32
     int itemCount = ListView_GetItemCount(hDesktopListView);
     DWORD pid = 0;
     GetWindowThreadProcessId(hDesktopListView, &pid);
     HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, pid);
 
-    // Allocate memory in the target process
+    // Allocate memory in SysListView32
     LPPOINT pt = (LPPOINT)VirtualAllocEx(hProcess, NULL, sizeof(POINT), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    LVITEM* lvItem = (LVITEM*)VirtualAllocEx(hProcess, NULL, sizeof(LVITEM), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    LVITEMW* lvItem = (LVITEM*)VirtualAllocEx(hProcess, NULL, sizeof(LVITEM), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     LPWSTR itemText = (LPWSTR)VirtualAllocEx(hProcess, NULL, 256 * sizeof(WCHAR), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     WCHAR itemName[256] = L"";
 
@@ -389,21 +386,19 @@ void WinWinFunctions::SaveDesktopLayout()
             wprintf(L"Failed to get position for item %d\n", i);
             continue;
         }
-        ReadProcessMemory(hProcess, pt, &iconPos, sizeof(POINT), &numRead);
+        ReadProcessMemory(hProcess, pt, &iconPos, sizeof(POINT), &numRead); // Transfer the LPPOINT from SysListView32 memory to iconPos
 
         LVITEM lvi = { 0 };
         lvi.iSubItem = 0;
         lvi.cchTextMax = 256;
-        lvi.pszText = itemText;
+        lvi.pszText = itemText; // Set pszText to virtually allocated LPWSTR 
 
-        // Write LVITEM to the target process
-        WriteProcessMemory(hProcess, lvItem, &lvi, sizeof(LVITEM), NULL);
+        WriteProcessMemory(hProcess, lvItem, &lvi, sizeof(LVITEM), NULL); // Write LVITEM to the target process
 
-        // Retrieve the item text
-        SendMessage(hDesktopListView, LVM_GETITEMTEXT, (WPARAM)i, (LPARAM)lvItem);
+        SendMessage(hDesktopListView, LVM_GETITEMTEXT, (WPARAM)i, (LPARAM)lvItem); // Retrieve the item text
 
-        // Read the item text from the target process
-        ReadProcessMemory(hProcess, itemText, itemName, 256 * sizeof(WCHAR), &numRead);
+        ReadProcessMemory(hProcess, itemText, itemName, 256 * sizeof(WCHAR), &numRead); // Read the item text from the target process
+        
         placeInfoTemp = { {"icon", std::wstring(itemName).c_str()},// Translate WINDOWPLACEMENT to json, stick the process in the front
             {"position", {{"x", std::to_string(iconPos.x)}, {"y",  std::to_string(iconPos.y)}}} };
 
@@ -437,7 +432,7 @@ void WinWinFunctions::ExecuteDesktopLayout(std::wstring json)
     GetWindowThreadProcessId(hDesktopListView, &pid);
     HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, pid);
 
-    // Allocate memory in the target process
+    // Allocate memory in SysListView32
     LPPOINT pt = (LPPOINT)VirtualAllocEx(hProcess, NULL, sizeof(POINT), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     LVITEM* lvItem = (LVITEM*)VirtualAllocEx(hProcess, NULL, sizeof(LVITEM), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     LPWSTR itemText = (LPWSTR)VirtualAllocEx(hProcess, NULL, 256 * sizeof(WCHAR), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -469,20 +464,16 @@ void WinWinFunctions::ExecuteDesktopLayout(std::wstring json)
         }
         ReadProcessMemory(hProcess, pt, &iconPos, sizeof(POINT), &numRead);
 
-
         LVITEM lvi = { 0 };
         lvi.iSubItem = 0;
         lvi.cchTextMax = 256;
         lvi.pszText = itemText;
 
-        // Write LVITEM to the target process
-        WriteProcessMemory(hProcess, lvItem, &lvi, sizeof(LVITEM), NULL);
+        WriteProcessMemory(hProcess, lvItem, &lvi, sizeof(LVITEM), NULL); // Write LVITEM to the target process
+        
+        SendMessageW(hDesktopListView, LVM_GETITEMTEXT, (WPARAM)i, (LPARAM)lvItem);// Retrieve the item text
 
-        // Retrieve the item text
-        SendMessageW(hDesktopListView, LVM_GETITEMTEXT, (WPARAM)i, (LPARAM)lvItem);
-
-        // Read the item text from the target process
-        ReadProcessMemory(hProcess, itemText, itemName, 256 * sizeof(WCHAR), &numRead);
+        ReadProcessMemory(hProcess, itemText, itemName, 256 * sizeof(WCHAR), &numRead);// Read the item text from the target process
 
         for (SavedIcon* icon : SavedIcons) {
             int wideStrSize = MultiByteToWideChar(CP_UTF8, 0, icon->m_iconName.c_str(), -1, nullptr, 0);
