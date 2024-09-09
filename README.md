@@ -9,7 +9,7 @@ To use the command line commands, you first have to call the executable. In the 
 with `./Windows_Windows.exe [command]`. I reccomend adding the absolute path of the executable to the system PATH for simplicity.  
 If you call the executable WITH arguments, it will not start the UI.  
   
-The following commands are currently compatible with Windows Windows:
+The following commands are currently compatible with Windows Windows:   
 `stack` - Stacks the currently open windows to fill the size of your main monitor. Command line stack supports a maximum of 8 windows in the stack. When four or less windows are open, each window will be stacked vertically and stretched to fill the length of the screen. For more than four windows, the screen will be divided in half and two stacks will be created.  
    
 `cascade`  - Arranges the active windows in a cascade. This resizes each of them into a square and sets the position of the top left corner of each window to descend diagnolly spaced about 50 pixels apart starting in the top left corner of the screen.  
