@@ -234,7 +234,7 @@ HRESULT WindowsApp::HandleCreate() {
             0,
             L"STATIC",
             L"",
-            WS_CHILD | WS_VISIBLE,
+            WS_CHILD | WS_VISIBLE | WS_VSCROLL,
             0, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 300, 50,
             m_hwnd,
             NULL,
@@ -436,47 +436,68 @@ std::string WindowsApp::ConvertToNarrowString(const std::wstring& wstr) {
 ///   HANDLE BASIC WINDOW EVENTS   ///
 
 void WindowsApp::HandleScroll(WPARAM wParam) {
-    int scrollCode = LOWORD(wParam);
-    int nPos;
-    int nOldPos;
-    SCROLLINFO si;
-    si.cbSize = sizeof(SCROLLINFO);
-    si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
-    GetScrollInfo(m_hwnd, SB_VERT, &si);
-
-    nOldPos = si.nPos;
-
-    switch (scrollCode) {
-        case SB_TOP:            
-            nPos = si.nMin; 
-            break;
-        case SB_BOTTOM:         
-            nPos = si.nMax; 
-            break;
+    int yPos = 0;
+    switch (LOWORD(wParam)) {
         case SB_LINEUP:
-            nPos = si.nPos - 1;
+            yPos -= 10;
             break;
         case SB_LINEDOWN:
-            nPos = si.nPos + 1;
+            yPos += 10;
             break;
-        case SB_THUMBPOSITION:
-            nPos = si.nTrackPos;
+        case SB_PAGEUP:
+            yPos -= 50;
             break;
-        default:
+        case SB_PAGEDOWN:
+            yPos += 50;
+            break;
         case SB_THUMBTRACK:
-            nPos = si.nPos;
+            yPos = HIWORD(wParam);
             break;
-    }
-    SetScrollPos(m_hwnd, SB_VERT, nPos, TRUE);
+        }
+        SetScrollPos(m_hActiveWindowsControlPanel, SB_VERT, yPos, TRUE);
+        InvalidateRect(m_hActiveWindowsControlPanel, NULL, TRUE);
 
-    nPos = GetScrollPos(m_hwnd, SB_VERT);
-
-    ScrollWindowEx(m_hwnd, 0, (int)(nOldPos - nPos) * 1,
-        NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_SCROLLCHILDREN);
-
-
-
-    UpdateWindow(m_hwnd);
+ //int scrollCode = LOWORD(wParam);
+ //int nPos;
+ //int nOldPos;
+ //SCROLLINFO si;
+ //si.cbSize = sizeof(SCROLLINFO);
+ //si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
+ //GetScrollInfo(m_hwnd, SB_VERT, &si);
+ //
+ //nOldPos = si.nPos;
+ //
+ //switch (scrollCode) {
+ //    case SB_TOP:            
+ //        nPos = si.nMin; 
+ //        break;
+ //    case SB_BOTTOM:         
+ //        nPos = si.nMax; 
+ //        break;
+ //    case SB_LINEUP:
+ //        nPos = si.nPos - 1;
+ //        break;
+ //    case SB_LINEDOWN:
+ //        nPos = si.nPos + 1;
+ //        break;
+ //    case SB_THUMBPOSITION:
+ //        nPos = si.nTrackPos;
+ //        break;
+ //    default:
+ //    case SB_THUMBTRACK:
+ //        nPos = si.nPos;
+ //        break;
+ //}
+ //SetScrollPos(m_hwnd, SB_VERT, nPos, TRUE);
+ //
+ //nPos = GetScrollPos(m_hwnd, SB_VERT);
+ //
+ //ScrollWindowEx(m_hwnd, 0, (int)(nOldPos - nPos) * 1,
+ //    NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_SCROLLCHILDREN);
+ //
+ //
+ //
+ //UpdateWindow(m_hwnd);
 
 }
 
@@ -498,6 +519,10 @@ void WindowsApp::HandleResize(){
         GetWindowRect(m_hwnd, &resizeRect);
   //      SetWindowPos(m_hControlWindow, NULL, 0, 0, resizeRect.right, resizeRect.bottom, NULL);
         UpdateWindow(m_hwnd);
+        RECT rect;
+        GetClientRect(m_hActiveWindowsControlPanel, &rect);
+        int pageHeight = rect.bottom - rect.top;
+        SetScrollRange(m_hActiveWindowsControlPanel, SB_VERT, 0, 1000 - pageHeight, TRUE);
     }
 }
 
