@@ -229,12 +229,7 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect)
     for (HWND ctrl : WindowVect) {
         GetWindowRect(ctrl, &rect);
         GetWindowPlacement(ctrl, &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
-        if (IsIconic(ctrl)) {                                                           // Put into WINDOWPLACEMENT object 
-            pInstancePlacement.rcNormalPosition.right = rect.right;
-            pInstancePlacement.rcNormalPosition.left = rect.left;
-            pInstancePlacement.rcNormalPosition.top = rect.top;
-            pInstancePlacement.rcNormalPosition.bottom = rect.bottom;
-        }
+                                                       // Put into WINDOWPLACEMENT object 
         GetWindowThreadProcessId(ctrl, &processId);
         hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executible associated with window handle
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
@@ -332,7 +327,7 @@ void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> W
     }
     for (HWND ctrl : WindowVect) {
         GetWindowThreadProcessId(ctrl, &processId);
-        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executible associated with window handle
+        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executable associated with window handle
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
         CloseHandle(hProcess);
         GetWindowText(ctrl, windowTitle, sizeof(windowTitle));
