@@ -51,7 +51,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
        return 0;
    }
    else if (cmdLine == "SaveLayout") {
-       WinWinFunctions::SaveWindowLayout(WinWinFunctions::GetActiveWindows());
+        if (__argc > 2) {
+            WinWinFunctions::SaveWindowLayout(WinWinFunctions::GetActiveWindows(), layout);
+        }
+        else {
+            WinWinFunctions::SaveWindowLayout(WinWinFunctions::GetActiveWindows());
+        }
        return 0;
    }
    else if (command == "ExecuteLayout") {

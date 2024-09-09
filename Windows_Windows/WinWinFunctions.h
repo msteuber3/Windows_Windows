@@ -162,7 +162,7 @@ public:
 	 * 
 	 * @param WindowVect Vector of windows to save
 	 */
-	static void SaveWindowLayout(std::vector<HWND> WindowVect);
+	static void SaveWindowLayout(std::vector<HWND> WindowVect, std::wstring presetLayoutName = L"Default");
 
 	/**
 	 * @brief Executes the layout of the specified user window layout

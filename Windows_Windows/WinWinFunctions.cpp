@@ -163,13 +163,20 @@ void WinWinFunctions::StackWindowsCallback(std::vector<HWND> WindowVect)
 }
 
 void WinWinFunctions::Cascade(std::vector<HWND> WindowVect) {
-    int stackPos = 10;
+    int stackPosX = 10;
+    int stackPosY = 10;
+    int stackFactorY = 50;
+    if (WindowVect.size() * stackFactorY + 760 > GetSystemMetrics(SM_CYSCREEN)) {
+        stackFactorY = (GetSystemMetrics(SM_CYSCREEN) - 760) / WindowVect.size();
+        if (stackFactorY < 5) { stackFactorY = 5; }
+    }
     for (HWND ctrl : WindowVect) { //Iterate through all windows in WindowsVector (all open windows)
         SendMessage(ctrl, WM_SYSCOMMAND, SC_RESTORE, 0);
         ShowWindow(ctrl, SW_SHOWNORMAL);  // Set each window to normal mode (unmax/unmin)
-        SetWindowPos(ctrl, HWND_TOPMOST, stackPos, stackPos, 750, 750, NULL); // Bring current window to front
-        SetWindowPos(ctrl, HWND_NOTOPMOST, stackPos, stackPos, 750, 750, NULL); // Remove "TOPMOST" flag
-        stackPos += 50;
+        SetWindowPos(ctrl, HWND_TOPMOST, stackPosX, stackPosY, 750, 750, NULL); // Bring current window to front
+        SetWindowPos(ctrl, HWND_NOTOPMOST, stackPosX, stackPosY, 750, 750, NULL); // Remove "TOPMOST" flag
+        stackPosX += 75;
+        stackPosY += stackFactorY;
     }
 }
 
@@ -193,10 +200,15 @@ std::wstring WinWinFunctions::GetUserInput(HINSTANCE hInstance) {
     return L"";
 }
 
-void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect)
+void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect, std::wstring presetLayoutName)
 {
-    std::wstring layoutName = GetUserInput(GetModuleHandle(NULL));
-
+    std::wstring layoutName;
+    if (presetLayoutName != L"Default") {
+        layoutName = presetLayoutName;
+    }
+    else {
+        layoutName = GetUserInput(GetModuleHandle(NULL));
+    }
     if (layoutName == L"") { layoutName = L"NewLayout"; }
 
     std::wstring WinWinLayoutsFile = L"SavedLayouts/" + layoutName + L".json";   // Name of json file (in SavedLayouts folder)
