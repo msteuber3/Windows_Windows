@@ -61,7 +61,7 @@ BOOL CALLBACK WinWinFunctions::EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     return TRUE;
 }
 
-bool WinWinFunctions::compareHwnd(HWND a, HWND b) { // Sort windows by title alphabetically
+bool compareHwnd(HWND a, HWND b) { // Sort windows by title alphabetically
     char titleA[256], titleB[256];
     GetWindowTextA(a, titleA, sizeof(titleA));
     GetWindowTextA(b, titleB, sizeof(titleB));

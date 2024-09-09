@@ -366,7 +366,7 @@ void WindowsApp::CreateControlOpts() {
         L"BUTTON",
         L"SAVE LAYOUT",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        5, 100, 120, 30,
+        5, 110, 120, 30,
         m_hWindowsControlPanel,
         (HMENU)SAVE_LAYOUT,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
@@ -377,7 +377,7 @@ void WindowsApp::CreateControlOpts() {
         L"BUTTON",
         L"WINDOW LAYOUTS",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        135, 100, 140, 30,
+        135, 110, 140, 30,
         m_hWindowsControlPanel,
         (HMENU)VIEW_SAVED_CONFIGS,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
@@ -523,7 +523,7 @@ void WindowsApp::WinWinShowActive() {
     // Enumerate through active windows and create controls
     WindowsVector.clear();
     PrintActiveWindows();
-    int ControlY = ((WindowsVector.size() + 1) * 100) + 102;
+    int ControlY = ((WindowsVector.size() + 1) * 100);
     RECT prevRect;
     GetWindowRect(m_hwnd, &prevRect);
     SetWindowPos(m_hwnd, NULL, 0, 0, prevRect.right - prevRect.left, ControlY, SWP_NOMOVE);
@@ -533,8 +533,14 @@ void WindowsApp::WinWinShowActive() {
     ActiveWinControlBottomLeft.x = ActiveWinControl.left;
     ActiveWinControlBottomLeft.y = ActiveWinControl.bottom;
     ScreenToClient(m_hwnd, &ActiveWinControlBottomLeft);
-    SetWindowPos(m_hActiveWindowsControlPanel, NULL, ActiveWinControlBottomLeft.x, ActiveWinControlBottomLeft.y - 30, ActiveWinControl.right - ActiveWinControl.left, ControlY + 30, SW_INVALIDATE); // resize control window
+    SetWindowPos(m_hActiveWindowsControlPanel, NULL, ActiveWinControlBottomLeft.x, ActiveWinControlBottomLeft.y - 30, ActiveWinControl.right - ActiveWinControl.left, ControlY, SW_INVALIDATE); // resize control window
     
+    RECT iconWindowRect;
+    GetWindowRect(m_hIconControlPanel, &iconWindowRect);
+    GetWindowRect(m_hActiveWindowsControlPanel, &ActiveWinControl);
+
+    SetWindowPos(m_hwnd, NULL, 0, 0, prevRect.right - prevRect.left, ActiveWinControl.bottom - iconWindowRect.top, SWP_NOMOVE);
+
     DestroyWindow(m_hShowWindows);
 
     m_hHideWindows = CreateWindowExW(
@@ -727,8 +733,8 @@ void WindowsApp::CascadeWindows() {
         L"BUTTON",
         L"SQUISH",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        15, 185, 100, 20,
-        m_hwnd,
+        15, 82, 100, 25,
+        m_hWindowsControlPanel,
         (HMENU)SQUISH,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),
         NULL);
@@ -836,7 +842,7 @@ void WindowsApp::WinWinViewSaved() {
         L"BUTTON",
         L"^",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        135, 100, 140, 30,
+        135, 110, 140, 30,
         m_hWindowsControlPanel,
         (HMENU)HIDE_SAVED_CONFIGS,
         (HINSTANCE)GetWindowLongPtr(m_hWindowsControlPanel, GWLP_HINSTANCE),
@@ -855,7 +861,7 @@ void WindowsApp::WinWinHideSaved() {
         L"BUTTON",
         L"WINDOW LAYOUTS",
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        135, 100, 140, 30,
+        135, 110, 140, 30,
         m_hWindowsControlPanel,
         (HMENU)VIEW_SAVED_CONFIGS,
         (HINSTANCE)GetWindowLongPtr(m_hwnd, GWLP_HINSTANCE),

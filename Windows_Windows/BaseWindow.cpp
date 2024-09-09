@@ -120,6 +120,10 @@ public:
         BaseWindow* app = reinterpret_cast<BaseWindow*>(lParam);
         WCHAR windowTitle[256];
         if (GetParent(hwnd) == NULL && IsWindowVisible(hwnd)) {
+            LRESULT result = SendMessageTimeoutW(hwnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, 1000, NULL);
+            if (result == 0 || !IsWindowEnabled(hwnd)) { // Check if the window is able to receive/respond to messages
+                return TRUE;
+            }
             if (GetWindowText(hwnd, windowTitle, sizeof(windowTitle) / sizeof(windowTitle[0])) == 0) {
                 return TRUE;
             }

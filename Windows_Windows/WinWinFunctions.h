@@ -65,7 +65,7 @@ public:
 	 * @param b Second window to compare
 	 * @return True if a is first alphabetically, False if b is first
 	 */
-	bool compareHwnd(HWND a, HWND b);
+	//bool compareHwnd(HWND a, HWND b);
 
 	/**
 	 * @brief Stack windows vertically to fill the screen 
@@ -189,7 +189,7 @@ public:
 	 *		You need drill down into the SysListView32 control and retrieve the window handle. This is the hierarchy for it:
 	 *		Progman
 	 *		   --->SHELLDLL_DefView
-	 *						  -------->SysListView32
+	 *					  -------->SysListView32
 	 *		Use the handle of SysListView32 to get the number of desktop icons and the process id of SysListView32, open the process to read and write. 
 	 *		Then, allocate virtual memory in the SysListView32 process for 3 objects: the LPPOINT (special windows type for pointer to a point object) of the icon, 
 	 *      a pointer to the LVITEM (list view item, recieves info about the icon), and the text of the icon as a LPWSTR (pointer to a WCHAR)
