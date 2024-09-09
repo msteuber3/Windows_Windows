@@ -110,7 +110,7 @@ public:
     * or the Visual Studio window running Windows Windowsa are the current window, exluding them from the vector. 
 	* The first 3 are always active even when their windows are closed and they disrupt core WinWin functionality by messing up the count,
 	* WinWin is excluded to prevent it from being impacted by itself, and Visual Studio is only excluded if it is running WinWin for my own sanity during development.
-    * It then creates a new instance of WindowControl and adds it to the WindowsVector.    * 
+    * It then creates a new instance of WindowControl and adds it to the WindowsVector.    
     * 
     * @param hwnd Current window in enumeration
     * @param lParam Stores user defined variables, in this case a pointer the instance of WindowsApp calling the enumeration function

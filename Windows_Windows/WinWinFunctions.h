@@ -249,24 +249,32 @@ public:
 	 */
 	static struct SavedWindow {
 		SavedWindow(std::string process,
+			std::string title,
+			HWND handle,
 			UINT flags,
 			UINT showCmd,
 			POINT ptMinPosition,
 			POINT ptMaxPosition,
 			RECT rcNormalPosition) {
 			m_process = process;
+			m_title = title;
+			m_handle = handle;
 			m_flags = flags;
 			m_showCmd = showCmd;
 			m_ptMinPosition = ptMinPosition;
 			m_ptMaxPosition = ptMaxPosition;
 			m_rcNormalPosition = rcNormalPosition;
+			moved = FALSE;
 		};
 		std::string m_process;
+		std::string m_title;
+		HWND m_handle;
 		UINT m_flags;
 		UINT m_showCmd;
 		POINT m_ptMinPosition;
 		POINT m_ptMaxPosition;
 		RECT m_rcNormalPosition;
+		bool moved;
 		WINDOWPLACEMENT* getWinPlacement() {
 			WINDOWPLACEMENT placement;
 			placement.showCmd = m_showCmd;

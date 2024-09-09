@@ -225,7 +225,7 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect)
     HANDLE hProcess;
     RECT rect;
     std::wstring processPath;
-    std::wstring instanceTitle;
+    WCHAR instanceTitle[256];
     for (HWND ctrl : WindowVect) {
         GetWindowRect(ctrl, &rect);
         GetWindowPlacement(ctrl, &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
@@ -241,12 +241,12 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect)
         CloseHandle(hProcess);
 
         processPath = std::wstring(path);
-    //    instanceTitle = std::wstring(ctrl);
+        GetWindowTextW(ctrl, instanceTitle, sizeof(instanceTitle));
 
         placeInfoTemp = { {"process", ConvertToNarrowString(processPath)},// Translate WINDOWPLACEMENT to json, stick the process in the front
             {"minimized", IsIconic(ctrl) },
             {"handle", int(ctrl)},
-            {"title", ConvertToNarrowString(instanceTitle)},
+            {"title", ConvertToNarrowString(std::wstring(instanceTitle))},
             {"length", pInstancePlacement.length},
             {"flags", pInstancePlacement.flags},
         {"showCmd", pInstancePlacement.showCmd },
@@ -289,6 +289,8 @@ void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> W
     DWORD processId;
     WCHAR path[MAX_PATH] = L"";
     HANDLE hProcess;
+    WCHAR windowTitle[256];
+    bool foundWindow = FALSE;
 
     std::fstream LayFile;
     LayFile.open(jsonFile, std::ios::in);
@@ -296,6 +298,8 @@ void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> W
     int i = 0;
     for (auto& window : Doc.items()) {
         std::string process = Doc[i].at("process");
+        std::string title = Doc[i].at("title");
+        int handle = Doc[i].at("handle");
         UINT flags = Doc[i].at("flags");
         UINT length = Doc[i].at("length");
         UINT showCmd = Doc[i].at("showCmd");
@@ -317,6 +321,8 @@ void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> W
 
         SavedWindows.push_back(new SavedWindow(
             process,
+            title,
+            HWND(handle),
             flags,
             showCmd,
             minPos,
@@ -329,13 +335,19 @@ void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> W
         hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executible associated with window handle
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
         CloseHandle(hProcess);
+        GetWindowText(ctrl, windowTitle, sizeof(windowTitle));
         for (SavedWindow* window : SavedWindows) {
-            int wideStrSize = MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, nullptr, 0);
-            std::wstring convertedWideStr(wideStrSize, L'/0');
-            MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, &convertedWideStr[0], wideStrSize);
-            convertedWideStr.erase(std::remove(convertedWideStr.begin(), convertedWideStr.end(), L'\0'), convertedWideStr.end());
-            std::wstring pathWstring(path);
-            if (pathWstring == convertedWideStr) {
+           // int wideStrSize = MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, nullptr, 0);
+           // std::wstring convertedWideStr(wideStrSize, L'/0');
+           // MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, &convertedWideStr[0], wideStrSize);
+           // convertedWideStr.erase(std::remove(convertedWideStr.begin(), convertedWideStr.end(), L'\0'), convertedWideStr.end());
+           // std::wstring pathWstring(path);
+
+            // Check for same executable
+            //if (pathWstring == convertedWideStr) {
+             
+            // Check for same HWND
+            if (ctrl == window->m_handle){
                 WINDOWPLACEMENT placement;
                 placement.length = sizeof(WINDOWPLACEMENT);
                 placement.showCmd = window->m_showCmd;
@@ -345,8 +357,34 @@ void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> W
                 placement.rcNormalPosition = window->m_rcNormalPosition;
 
                 SetWindowPlacement(ctrl, &placement);
+                window->moved = TRUE;
+                foundWindow = TRUE;
+            }
+
+            
+        }
+        if (!foundWindow) {
+            for (SavedWindow* window : SavedWindows) {
+                // Check for same window title
+                if (ConvertToNarrowString(windowTitle) == window->m_title && !window->moved) {
+                    WINDOWPLACEMENT placement;
+                    placement.length = sizeof(WINDOWPLACEMENT);
+                    placement.showCmd = window->m_showCmd;
+                    placement.flags = window->m_flags;
+                    placement.ptMaxPosition = window->m_ptMinPosition;
+                    placement.ptMaxPosition = window->m_ptMaxPosition;
+                    placement.rcNormalPosition = window->m_rcNormalPosition;
+
+                    SetWindowPlacement(ctrl, &placement);
+                    window->moved = TRUE;
+                    foundWindow = TRUE;
+                }
             }
         }
+        foundWindow = FALSE;
+    }
+    for (SavedWindow *windStruct : SavedWindows) {
+        windStruct->moved = FALSE;
     }
 
 }
