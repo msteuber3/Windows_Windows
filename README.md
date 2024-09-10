@@ -38,3 +38,13 @@ In addition to displaying the controls, the dropdown button also refreshes the a
 ### Multilayered stacking -  
 When you view more than 8 windows in stack mode through the command line, WinWin does not stack any windows beyond the first 8 because command line commands are run as static functions that do not store any application state data. Since the UI does store a list of open windows, stacking more than 8 windows opens up multilayered stack controls underneath the stack button. 'Stack' groups the windows into sublists of 8 windows and displays the first, with the buttons allowing you to scroll through your window sublists.  
    
+
+## Notes
+- WinWin is not able to manipulate the task manager. While it will appear in your control list, the task manager does not respond to window resize messages.
+- WinWin will NOT reopen closed programs when you execute a desktop layout. If you execute a desktop layout that includes closed programs, WinWin will simply skip these and leave the position they were in empty.
+- Since the command line commands are static functions that do not store application state info, multilayered stacking is not a feature of the command line stack. Calling stack on the command line when more than 8 windows are open only stacks the first 8, ignoring the others.
+- When executing a saved desktop layout, WinWin preforms 3 checks to match stored windows to active windows:
+  - First, it checks the window handles. Any windows you kept open since saving the layout will be matched to its handle.
+  - Second, it checks the window title. If you have multiple windows with identical titles (ex. two RDP windows connected to the same host) their positions may be swapped when you execute the layout. If this is an issue, the easiest solution is to execute the layout, swap your two windows manually, and resave the layout so that WinWin can match them to their current handle.
+  - Third, if both of the above fail, it checks the process running the window. This is primarily applicable to applications such as web browsers whose titles depend on the open tab. For this reason, multiple isntances of a web browser may be swapped (although if you don't have the same tabs open as when you saved the layout originally, this will likely not be noticable). 
+    - Because of this, you can give an application priority in the window arrangment by activating it and refreshing the Window Control list. For example, if you have two firefox windows open and would like one in the top left corner and the other in the bottom right, you can click on the window you'd like in the top left, resfresh the control, and execute the layout.
