@@ -223,16 +223,19 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect, std::wstrin
     if (layoutName == L"") { layoutName = L"NewLayout"; }
     if (!layoutName.empty() && layoutName.back() == L'\0') layoutName.pop_back();
 
+
+    // Retrieve the path of the executable to ensure that the correct SavedLayouts directory is referenced
+    // Without this, it will attempt to find SavedLayouts in whatever dir the command was called in
+    // This is for command line support
+
     wchar_t exeWcharPath[MAX_PATH];
     GetModuleFileName(NULL, exeWcharPath, MAX_PATH);
 
-    // Extract the directory path
     std::wstring exePath(exeWcharPath);
     std::wstring::size_type pos = exePath.find_last_of(L"\\/");
     std::wstring exeDir = exePath.substr(0, pos);
 
-    // Set the working directory to the executable's directory
-    SetCurrentDirectory(exeDir.c_str());
+    SetCurrentDirectory(exeDir.c_str()); // Set the working directory to the executable's directory
 
     std::wstring WinWinLayoutsFile = exeDir + L"/SavedLayouts/" + layoutName + L".json";   // Name of json file (in SavedLayouts folder)
     
@@ -265,7 +268,8 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect, std::wstrin
         GetWindowRect(ctrl, &rect);
         GetWindowPlacement(ctrl, &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
                                                        // Put into WINDOWPLACEMENT object 
-        if (!IsIconic(ctrl)) {
+        if (!IsIconic(ctrl)) { // If the window isn't minimized, set the window size to the dimensions from GetWindowRect. Without this, windows set with the 
+                               // Windows auto window placement magic won't be set correctly
             pInstancePlacement.rcNormalPosition.left = rect.left;
             pInstancePlacement.rcNormalPosition.right = rect.right;
             pInstancePlacement.rcNormalPosition.top = rect.top;
@@ -273,7 +277,7 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect, std::wstrin
 
         }
         GetWindowThreadProcessId(ctrl, &processId);
-        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executible associated with window handle
+        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executable associated with window handle
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
         CloseHandle(hProcess);
 
@@ -310,18 +314,21 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect, std::wstrin
 }
 
 void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> WindowVect) {
-    if (!json.empty() && json.back() == L'\0') json.pop_back();
+    
+    if (!json.empty() && json.back() == L'\0') json.pop_back(); // Remove null terminator from end of file name
+
+    // Retrieve the path of the executable to ensure that the correct SavedLayouts directory is referenced
+    // Without this, it will attempt to find SavedLayouts in whatever dir the command was called in
+    // This is for command line support
 
     wchar_t exeWcharPath[MAX_PATH];
     GetModuleFileName(NULL, exeWcharPath, MAX_PATH);
 
-    // Extract the directory path
     std::wstring exePath(exeWcharPath);
     std::wstring::size_type pos = exePath.find_last_of(L"\\/");
     std::wstring exeDir = exePath.substr(0, pos);
 
-    // Set the working directory to the executable's directory
-    SetCurrentDirectory(exeDir.c_str());
+    SetCurrentDirectory(exeDir.c_str()); // Set the working directory to the executable's directory
 
     std::wstring jsonFile = exeDir + L"/SavedLayouts/" + json;
     jsonFile.append(L".json");

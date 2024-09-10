@@ -90,9 +90,20 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_SIZE:
         HandleResize();
+        // Show or hide the scroll bar based on window height
+      //  if (HIWORD(lParam) > 300) {
+      //      ShowScrollBar(m_hwnd, SB_VERT, TRUE);
+      //  }
+      //  else {
+      //      ShowScrollBar(m_hwnd, SB_VERT, FALSE);
+      //  }
+
+        // Reposition the child window
+       // MoveWindow(hwndChild, 10, 10, 300, childHeight, TRUE);
+
         break;
     case WM_VSCROLL:
-        HandleScroll(wParam);
+      //  HandleScroll(wParam);
         break;
     case WM_COMMAND:
         if (HIWORD(wParam) == BN_CLICKED) {
@@ -210,7 +221,7 @@ HRESULT WindowsApp::Initialize()
     HRESULT hr;
     // See BaseWindow.cpp
     hr = this->Create(L"Windows Window Extension Window",
-        WS_OVERLAPPEDWINDOW | WS_VSCROLL,
+        WS_OVERLAPPEDWINDOW,
         0,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -234,7 +245,7 @@ HRESULT WindowsApp::HandleCreate() {
             0,
             L"STATIC",
             L"",
-            WS_CHILD | WS_VISIBLE | WS_VSCROLL,
+            WS_CHILD | WS_VISIBLE, // | WS_VSCROLL,
             0, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 300, 50,
             m_hwnd,
             NULL,
@@ -253,15 +264,15 @@ HRESULT WindowsApp::HandleCreate() {
         SetWindowPos(ctrl->m_hControlPanel, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_HIDEWINDOW);
     }
     int ControlY = 400;
-    SCROLLINFO si; // Set scroll information
-    si.cbSize = sizeof(SCROLLINFO);
-    si.fMask = SIF_RANGE | SIF_PAGE;
-    si.nMin = 0;
-    si.nMax = ControlY;
-    si.nPage = 1000;
-    if (m_hwnd != 0) {
-        SetScrollInfo(m_hwnd, SB_VERT, &si, TRUE);
-    }
+//  SCROLLINFO si; // Set scroll information
+//  si.cbSize = sizeof(SCROLLINFO);
+//  si.fMask = SIF_RANGE | SIF_PAGE;
+//  si.nMin = 0;
+//  si.nMax = ControlY;
+//  si.nPage = 1000;
+//  if (m_hActiveWindowsControlPanel != 0) {
+//      SetScrollInfo(m_hActiveWindowsControlPanel, SB_VERT, &si, TRUE);
+//  }
 
     return hr;
 }
@@ -436,26 +447,42 @@ std::string WindowsApp::ConvertToNarrowString(const std::wstring& wstr) {
 ///   HANDLE BASIC WINDOW EVENTS   ///
 
 void WindowsApp::HandleScroll(WPARAM wParam) {
-    int yPos = 0;
+    static int yPos = 0;
+    int yDelta; // Distance to scroll
+    int yNewPos; // New position of scroll box
+
     switch (LOWORD(wParam)) {
-        case SB_LINEUP:
-            yPos -= 10;
-            break;
-        case SB_LINEDOWN:
-            yPos += 10;
-            break;
-        case SB_PAGEUP:
-            yPos -= 50;
-            break;
-        case SB_PAGEDOWN:
-            yPos += 50;
-            break;
-        case SB_THUMBTRACK:
-            yPos = HIWORD(wParam);
-            break;
-        }
-        SetScrollPos(m_hActiveWindowsControlPanel, SB_VERT, yPos, TRUE);
-        InvalidateRect(m_hActiveWindowsControlPanel, NULL, TRUE);
+    case SB_LINEUP:
+        yDelta = -1; // Scroll up one line
+        break;
+    case SB_LINEDOWN:
+        yDelta = 1; // Scroll down one line
+        break;
+    case SB_PAGEUP:
+        yDelta = -10; // Scroll up one page
+        break;
+    case SB_PAGEDOWN:
+        yDelta = 10; // Scroll down one page
+        break;
+    case SB_THUMBTRACK:
+        yNewPos = HIWORD(wParam); // Drag scroll box to new position
+        yDelta = yNewPos - yPos;
+        break;
+    default:
+        yDelta = 0;
+    }
+
+    // Update the scroll position
+    yPos += yDelta;
+    yPos = max(0, min(yPos, 100)); // Ensure the position is within the range
+
+    // Set the scroll bar position
+    SetScrollPos(m_hActiveWindowsControlPanel, SB_VERT, yPos, TRUE);
+
+    // Scroll the window content
+    ScrollWindow(m_hActiveWindowsControlPanel, 0, -yDelta, NULL, NULL);
+    UpdateWindow(m_hActiveWindowsControlPanel);
+
 
  //int scrollCode = LOWORD(wParam);
  //int nPos;
@@ -522,7 +549,9 @@ void WindowsApp::HandleResize(){
         RECT rect;
         GetClientRect(m_hActiveWindowsControlPanel, &rect);
         int pageHeight = rect.bottom - rect.top;
-        SetScrollRange(m_hActiveWindowsControlPanel, SB_VERT, 0, 1000 - pageHeight, TRUE);
+        SetScrollRange(m_hActiveWindowsControlPanel, SB_VERT, 0, pageHeight, TRUE);
+
+
     }
 }
 
