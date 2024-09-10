@@ -26,7 +26,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
    std::string params;
    std::string cmdLine(pCmdLine); 
    std::wstring layout;
-   std::string command;
+   std::string command = cmdLine;
    if (__argc > 2) {        // If there are more than 2 command line paramters, store the third in layout after converting it to a wide string
        command = __argv[1]; // The first two command line parameters are Windows_Windows.exe and whatever command the user would like to execute. 
        params = __argv[2];  // For example, if the user would like to execute cascade, they would call ./Windows_Windows.exe cascade
@@ -50,7 +50,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         WinWinFunctions::Squish(WinWinFunctions::GetActiveWindows());
        return 0;
    }
-   else if (cmdLine == "SaveLayout") {
+   else if (command == "SaveLayout") {
         if (__argc > 2) {
             WinWinFunctions::SaveWindowLayout(WinWinFunctions::GetActiveWindows(), layout);
         }

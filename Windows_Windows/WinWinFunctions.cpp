@@ -46,6 +46,10 @@ BOOL CALLBACK WinWinFunctions::EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     std::vector<HWND>* WindowHwndVector = reinterpret_cast<std::vector<HWND>*>(lParam);
     WCHAR windowTitle[256];
     if (GetParent(hwnd) == NULL && IsWindowVisible(hwnd)) {
+        LRESULT result = SendMessageTimeoutW(hwnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, 1000, NULL);
+        if (result == 0 || !IsWindowEnabled(hwnd)) { // Check if the window is able to receive/respond to messages
+            return TRUE;
+        }
         if (GetWindowText(hwnd, windowTitle, sizeof(windowTitle) / sizeof(windowTitle[0])) == 0) {
             return TRUE;
         }
@@ -181,14 +185,21 @@ void WinWinFunctions::Cascade(std::vector<HWND> WindowVect) {
 }
 
 void WinWinFunctions::Squish(std::vector<HWND> WindowVect) {
-    int stackPos = 10;
+    int stackPosX = 10;
+    int stackPosY = 10;
+    int stackFactorY = 50;
+    if (WindowVect.size() * stackFactorY + 760 > GetSystemMetrics(SM_CYSCREEN)) {
+        stackFactorY = (GetSystemMetrics(SM_CYSCREEN) - 760) / WindowVect.size();
+        if (stackFactorY < 5) { stackFactorY = 5; }
+    }
     RECT windowRect;
     for (HWND ctrl : WindowVect) { //Iterate through all windows in WindowsVector (all open windows)
         GetWindowRect(ctrl, &windowRect);
-        if (windowRect.top == stackPos && windowRect.left == stackPos ) { //&& windowRect.right - windowRect.left == 750 && windowRect.bottom - windowRect.top == 750
+        if (windowRect.top == stackPosY && windowRect.left == stackPosX) { //&& windowRect.right - windowRect.left == 750 && windowRect.bottom - windowRect.top == 750
             ShowWindow(ctrl, SW_MINIMIZE);
         }
-        stackPos += 50;
+        stackPosX += 75;
+        stackPosY += stackFactorY;
     }
 }
 
@@ -210,8 +221,20 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect, std::wstrin
         layoutName = GetUserInput(GetModuleHandle(NULL));
     }
     if (layoutName == L"") { layoutName = L"NewLayout"; }
+    if (!layoutName.empty() && layoutName.back() == L'\0') layoutName.pop_back();
 
-    std::wstring WinWinLayoutsFile = L"SavedLayouts/" + layoutName + L".json";   // Name of json file (in SavedLayouts folder)
+    wchar_t exeWcharPath[MAX_PATH];
+    GetModuleFileName(NULL, exeWcharPath, MAX_PATH);
+
+    // Extract the directory path
+    std::wstring exePath(exeWcharPath);
+    std::wstring::size_type pos = exePath.find_last_of(L"\\/");
+    std::wstring exeDir = exePath.substr(0, pos);
+
+    // Set the working directory to the executable's directory
+    SetCurrentDirectory(exeDir.c_str());
+
+    std::wstring WinWinLayoutsFile = exeDir + L"/SavedLayouts/" + layoutName + L".json";   // Name of json file (in SavedLayouts folder)
     
     if (!std::filesystem::exists(WinWinLayoutsFile)) { // Check if it exists, create it if not
         std::ofstream{ WinWinLayoutsFile };
@@ -242,6 +265,13 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect, std::wstrin
         GetWindowRect(ctrl, &rect);
         GetWindowPlacement(ctrl, &pInstancePlacement); // Get the hwnd of the current handle and extract placement details. 
                                                        // Put into WINDOWPLACEMENT object 
+        if (!IsIconic(ctrl)) {
+            pInstancePlacement.rcNormalPosition.left = rect.left;
+            pInstancePlacement.rcNormalPosition.right = rect.right;
+            pInstancePlacement.rcNormalPosition.top = rect.top;
+            pInstancePlacement.rcNormalPosition.bottom = rect.bottom;
+
+        }
         GetWindowThreadProcessId(ctrl, &processId);
         hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId); // Get executible associated with window handle
         GetModuleFileNameEx(hProcess, NULL, path, MAX_PATH);
@@ -281,7 +311,19 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect, std::wstrin
 
 void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> WindowVect) {
     if (!json.empty() && json.back() == L'\0') json.pop_back();
-    std::wstring jsonFile = L"SavedLayouts/" + json;
+
+    wchar_t exeWcharPath[MAX_PATH];
+    GetModuleFileName(NULL, exeWcharPath, MAX_PATH);
+
+    // Extract the directory path
+    std::wstring exePath(exeWcharPath);
+    std::wstring::size_type pos = exePath.find_last_of(L"\\/");
+    std::wstring exeDir = exePath.substr(0, pos);
+
+    // Set the working directory to the executable's directory
+    SetCurrentDirectory(exeDir.c_str());
+
+    std::wstring jsonFile = exeDir + L"/SavedLayouts/" + json;
     jsonFile.append(L".json");
     if (!std::filesystem::exists(jsonFile)) { // Check if it exists
         return;
