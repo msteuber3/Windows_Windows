@@ -111,9 +111,13 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             int ControlY = ((WindowsVector.size() + 1) * 100) + 75;
             switch (id) {
             case CASCADE:
+                WindowsVector.clear();
+                PrintActiveWindows();
                 CascadeWindows();
                 break;
             case STACK:
+                WindowsVector.clear();
+                PrintActiveWindows();
                 StackWindows();
                 break;
             case NEXT_STACK:
@@ -128,6 +132,8 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 ExitStack();
                 break;
             case SAVE_LAYOUT:
+                WindowsVector.clear();
+                PrintActiveWindows();
                 WinWinSaveLayout();
                 break;
             case VIEW_SAVED_CONFIGS:
@@ -143,6 +149,8 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 WinWinHideActive();
                 break;
             case EXECUTE_LAYOUT:
+                WindowsVector.clear();
+                PrintActiveWindows();
                 wchar_t jsonFile[256];
                 GetWindowText((HWND)lParam, jsonFile, 256);
                 ExecuteSaved(jsonFile);
