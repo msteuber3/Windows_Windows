@@ -47,7 +47,7 @@ void WindowControl::Create()
        WS_CHILD | WS_VISIBLE | WS_BORDER,
        0,
        m_x + 30,
-       300,
+       280,
        100,
        m_Parent, 
        NULL, 

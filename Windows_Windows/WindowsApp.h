@@ -58,6 +58,8 @@ public:
     // Window procedure for the active windows control panel 
     WNDPROC controlWindowProc;
 
+    WNDPROC scrollBarProc;
+
     
     ///   STRUCTS   ///
 
@@ -441,7 +443,7 @@ private:
     void HandleResize();
 
     // Called on window scroll
-    void HandleScroll(WPARAM wParam);
+    void HandleScroll(WPARAM wParam, LPARAM lParam);
 
 
     ///   CHILD WINDOW HANDLES   ///
@@ -502,4 +504,6 @@ private:
 
     // Windows control window handle
     HWND m_hWindowsControlPanel;
+
+    HWND m_hScrollBar;
 };
