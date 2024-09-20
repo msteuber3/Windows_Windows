@@ -314,7 +314,7 @@ void WinWinFunctions::SaveWindowLayout(std::vector<HWND> WindowVect, std::wstrin
 }
 
 void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> WindowVect) {
-    
+
     if (!json.empty() && json.back() == L'\0') json.pop_back(); // Remove null terminator from end of file name
 
     // Retrieve the path of the executable to ensure that the correct SavedLayouts directory is referenced
@@ -393,26 +393,9 @@ void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> W
         CloseHandle(hProcess);
         GetWindowText(ctrl, windowTitle, sizeof(windowTitle));
 
-        for (SavedWindow* window : SavedWindows) { // CHECK 1: Find same HWND     
-            if (ctrl == window->m_handle){
-                WINDOWPLACEMENT placement;
-                placement.length = sizeof(WINDOWPLACEMENT);
-                placement.showCmd = window->m_showCmd;
-                placement.flags = window->m_flags;
-                placement.ptMaxPosition = window->m_ptMinPosition;
-                placement.ptMaxPosition = window->m_ptMaxPosition;
-                placement.rcNormalPosition = window->m_rcNormalPosition;
-
-                SetWindowPlacement(ctrl, &placement);
-                window->moved = TRUE;
-                foundWindow = TRUE;
-            }
-
-            
-        }
         if (!foundWindow) {
-            for (SavedWindow* window : SavedWindows) { // CHECK 2: Find same window title
-                if (ConvertToNarrowString(windowTitle) == window->m_title && !window->moved) {
+            for (SavedWindow* window : SavedWindows) { // CHECK 1: Find same HWND     
+                if (ctrl == window->m_handle) {
                     WINDOWPLACEMENT placement;
                     placement.length = sizeof(WINDOWPLACEMENT);
                     placement.showCmd = window->m_showCmd;
@@ -425,37 +408,53 @@ void WinWinFunctions::ExecuteWindowLayout(std::wstring json, std::vector<HWND> W
                     window->moved = TRUE;
                     foundWindow = TRUE;
                 }
-            }
-        }
-        if (!foundWindow) {
-            for (SavedWindow* window : SavedWindows) { // CHECK 3: Find same process
-                int wideStrSize = MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, nullptr, 0);
-                std::wstring convertedWideStr(wideStrSize, L'/0');
-                MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, &convertedWideStr[0], wideStrSize);
-                convertedWideStr.erase(std::remove(convertedWideStr.begin(), convertedWideStr.end(), L'\0'), convertedWideStr.end());
-                std::wstring pathWstring(path);
-                if (pathWstring == convertedWideStr) {
+                
+                if (!window->moved) { // CHECK 2: Find same window title
+                    std::string convertedWindowTitle = ConvertToNarrowString(windowTitle);
+                    if (convertedWindowTitle == window->m_title && !window->moved) {
+                        WINDOWPLACEMENT placement;
+                        placement.length = sizeof(WINDOWPLACEMENT);
+                        placement.showCmd = window->m_showCmd;
+                        placement.flags = window->m_flags;
+                        placement.ptMaxPosition = window->m_ptMinPosition;
+                        placement.ptMaxPosition = window->m_ptMaxPosition;
+                        placement.rcNormalPosition = window->m_rcNormalPosition;
+
+                        SetWindowPlacement(ctrl, &placement);
+                        window->moved = TRUE;
+                        foundWindow = TRUE;
+                    }
                     
-                    WINDOWPLACEMENT placement;
-                    placement.length = sizeof(WINDOWPLACEMENT);
-                    placement.showCmd = window->m_showCmd;
-                    placement.flags = window->m_flags;
-                    placement.ptMaxPosition = window->m_ptMinPosition;
-                    placement.ptMaxPosition = window->m_ptMaxPosition;
-                    placement.rcNormalPosition = window->m_rcNormalPosition;
+                    if (!window->moved) {  // CHECK 3: Find same process
+                        int wideStrSize = MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, nullptr, 0);
+                        std::wstring convertedWideStr(wideStrSize, L'/0');
+                        MultiByteToWideChar(CP_UTF8, 0, window->m_process.c_str(), -1, &convertedWideStr[0], wideStrSize);
+                        convertedWideStr.erase(std::remove(convertedWideStr.begin(), convertedWideStr.end(), L'\0'), convertedWideStr.end());
+                        std::wstring pathWstring(path);
+                        if (pathWstring == convertedWideStr) {
 
-                    SetWindowPlacement(ctrl, &placement);
-                    window->moved = TRUE;
-                    foundWindow = TRUE;
+                            WINDOWPLACEMENT placement;
+                            placement.length = sizeof(WINDOWPLACEMENT);
+                            placement.showCmd = window->m_showCmd;
+                            placement.flags = window->m_flags;
+                            placement.ptMaxPosition = window->m_ptMinPosition;
+                            placement.ptMaxPosition = window->m_ptMaxPosition;
+                            placement.rcNormalPosition = window->m_rcNormalPosition;
+
+                            SetWindowPlacement(ctrl, &placement);
+                            window->moved = TRUE;
+                            foundWindow = TRUE;
+                        }
+                    }
                 }
+                window->moved = FALSE;
             }
         }
         foundWindow = FALSE;
     }
-    for (SavedWindow *windStruct : SavedWindows) {
+    for (SavedWindow* windStruct : SavedWindows) {
         windStruct->moved = FALSE;
     }
-
 }
 
 void WinWinFunctions::SaveDesktopLayout()

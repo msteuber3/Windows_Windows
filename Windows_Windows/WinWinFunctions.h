@@ -320,13 +320,13 @@ public:
 			throw std::runtime_error("WideCharToMultiByte failed");
 		}
 
-		std::string str(size_needed, 0); // Create new string
+		std::string str(size_needed - 1, 0); // Create new string
 		int result = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &str[0], size_needed, NULL, NULL); // And write the contents of the wstring to it
 		if (result == 0) {
 			throw std::runtime_error("WideCharToMultiByte failed");
 		}
 
-		str.resize(size_needed - 1); // Remove the null terminator added by WideCharToMultiByte
+	//	str.resize(size_needed - 1); // Remove the null terminator added by WideCharToMultiByte
 
 		return str;
 	}

@@ -212,6 +212,12 @@ public:
      * @return The converted narrow string
      */
     std::string ConvertToNarrowString(const std::wstring& wstr);
+
+
+    /**
+     * @brief Manually triggers the WM_SIZE event without changing the window size
+     */
+    void TriggerResize();
         
 
     ///   WINDOW RESOURCES   ///

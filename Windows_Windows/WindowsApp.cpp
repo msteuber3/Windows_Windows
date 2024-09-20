@@ -82,29 +82,70 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
     static int yPos = 0;
     LRESULT lResult = 0;
 
+    int newHeight;
+
     switch (uMsg) {
     case WM_CREATE:
         HandleCreate();
         break;
     case WM_PAINT:
-        HandlePaint();
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(m_hwnd, &ps);
+
+        RECT rect;
+        GetClientRect(m_hwnd, &rect);
+        // Double buffering
+        HDC memDC = CreateCompatibleDC(hdc);
+        HBITMAP memBitmap = CreateCompatibleBitmap(hdc, rect.right - rect.left, rect.bottom - rect.top);
+        HGDIOBJ oldBitmap = SelectObject(memDC, memBitmap);
+
+        SetTextColor(hdc, RGB(0, 0, 0));
+        SetBkMode(hdc, TRANSPARENT);
+        EndPaint(m_hwnd, &ps);
+
+        // Copy the memory device context to the screen
+        BitBlt(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top, memDC, 0, 0, SRCCOPY);
+
+        // Clean up
+        SelectObject(memDC, oldBitmap);
+        DeleteObject(memBitmap);
+        DeleteDC(memDC);
+
+        EndPaint(m_hwnd, &ps);
         break;
+    }
     case WM_SIZE:
         HandleResize();
         // Show or hide the scroll bar based on window height
-        if (HIWORD(lParam) > 300) {
+        newHeight = HIWORD(lParam);
+        if (HIWORD(lParam) > 310) {
             ShowWindow(m_hScrollBar, SW_SHOW);
         }
         else {
             ShowWindow(m_hScrollBar, SW_HIDE);
+            ShowWindow(m_hScrollBar, SW_HIDE);
+            UpdateWindow(m_hScrollBar);
         }
+        
 
       // Reposition the child window
       // MoveWindow(m_hActiveWindowsControlPanel, 10, 10, 300, HIWORD(lParam), TRUE);
 
         break;
+    case WM_ERASEBKGND:
+    {
+        HDC hdc = (HDC)wParam;
+        RECT rect;
+        GetClientRect(m_hwnd, &rect);
+        HBRUSH hBrush = CreateSolidBrush(GetSysColor(COLOR_WINDOW));
+        FillRect(hdc, &rect, hBrush);
+        DeleteObject(hBrush);
+        break;
+    }
     case WM_VSCROLL:
    //     HandleScroll(wParam, lParam);
+
         if ((HWND)lParam == m_hScrollBar) {
             int yDelta = 0; // Distance to scroll
             int yNewPos; // New position of scroll box
@@ -150,8 +191,12 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             GetClientRect(m_hActiveWindowsControlPanel, &rect);
             // Scroll the window content
            // ScrollWindowEx(m_hActiveWindowsControlPanel, 0, -yDelta, &rect, NULL, NULL, NULL , NULL);
+          //  ScrollWindowEx(m_hActiveWindowsControlPanel, 0, -yDelta, NULL, NULL, NULL, NULL, SW_SCROLLCHILDREN | SW_SMOOTHSCROLL | (100 << 16) );
             ScrollWindow(m_hActiveWindowsControlPanel, 0, -yDelta, NULL, NULL);
-            UpdateWindow(m_hActiveWindowsControlPanel);
+       //     UpdateWindow(m_hActiveWindowsControlPanel);
+            RedrawWindow(m_hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
+
+
         }
         break;
     case WM_COMMAND:
@@ -181,15 +226,19 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 break;
             case VIEW_SAVED_CONFIGS:
                 WinWinViewSaved();
+                TriggerResize();
                 break;
             case HIDE_SAVED_CONFIGS:
                 WinWinHideSaved();
+                TriggerResize();
                 break;
             case SHOW_ACTIVE_WINDOWS:
                 WinWinShowActive();
+                TriggerResize();
                 break;
             case HIDE_ACTIVE_WINDOWS:
                 WinWinHideActive();
+                TriggerResize();
                 break;
             case EXECUTE_LAYOUT:
                 wchar_t jsonFile[256];
@@ -201,9 +250,11 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
                 break;
             case SAVED_DESKTOP_LAYOUTS:
                 ViewSavedDesktopLayouts();
+                TriggerResize();
                 break;
             case HIDE_SAVED_DESKTOP_CONFIGS:
                 HideSavedDesktopLayouts();
+                TriggerResize();
                 break;
             case EXECUTE_DESKTOP_LAYOUT:
                 wchar_t desktopJsonFile[256];
@@ -311,7 +362,7 @@ HRESULT WindowsApp::Initialize()
     HRESULT hr;
     // See BaseWindow.cpp
     hr = this->Create(L"Windows Window Extension Window",
-        WS_OVERLAPPEDWINDOW,
+        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
         0,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -335,7 +386,7 @@ HRESULT WindowsApp::HandleCreate() {
             0,
             L"STATIC",
             L"",
-            WS_CHILD | WS_VISIBLE,
+            WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 
             0, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 280, 50,
             m_hwnd,
             NULL,
@@ -345,7 +396,7 @@ HRESULT WindowsApp::HandleCreate() {
             0,
             L"SCROLLBAR",
             NULL,
-            WS_CHILD | WS_VISIBLE | SBS_VERT,
+            WS_CHILD | WS_VISIBLE | SBS_VERT | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 
             280, SHOW_ACTIVE_WINDOWS_BUTTON_Y, 20, 50,
             m_hwnd, 
             NULL, 
@@ -392,7 +443,7 @@ void WindowsApp::CreateControlOpts() {
         0,
         L"STATIC",
         L"",
-        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        WS_CHILD | WS_VISIBLE | WS_BORDER | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 
         0,
         0,
         300,
@@ -439,7 +490,7 @@ void WindowsApp::CreateControlOpts() {
         0,
         L"STATIC",
         L"",
-        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        WS_CHILD | WS_VISIBLE | WS_BORDER | WS_CLIPCHILDREN | WS_CLIPSIBLINGS, 
         0,
         100,
         300,
@@ -549,6 +600,15 @@ std::string WindowsApp::ConvertToNarrowString(const std::wstring& wstr) {
     str.resize(size_needed - 1);
 
     return str;
+}
+
+void WindowsApp::TriggerResize() {
+    RECT rect;
+    GetClientRect(m_hwnd, &rect); // Get the current size of the client area
+    int width = rect.right - rect.left;
+    int height = rect.bottom - rect.top;
+
+    SendMessage(m_hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(width, height));
 }
 
 
@@ -663,19 +723,20 @@ void WindowsApp::HandleResize(){
         GetWindowRect(m_hActiveWindowsControlPanel, &rect);
         int pageHeight = rect.bottom - rect.top;
         POINT pageHeightPoint;
-        pageHeightPoint.x = rect.left;
+        pageHeightPoint.x = rect.right;
         pageHeightPoint.y = rect.top;
         ScreenToClient(m_hwnd, &pageHeightPoint);
         int scrollBarY = (resizeRect.bottom - (resizeRect.top + 60)) - pageHeightPoint.y;
-        SetWindowPos(m_hScrollBar, NULL, 0, 0, 20, scrollBarY, SWP_NOMOVE); // (resizeRect.bottom - resizeRect.top) - pageHeightPoint.y - 500
+        SetWindowPos(m_hScrollBar, NULL, pageHeightPoint.x, pageHeightPoint.y, 20, scrollBarY, NULL); // (resizeRect.bottom - resizeRect.top) - pageHeightPoint.y - 500
 
         SCROLLINFO si;
         si.cbSize = sizeof(si);
         si.fMask = SIF_RANGE | SIF_PAGE;
         si.nMin = 0;
         si.nMax = rect.bottom - rect.top; // Set the range based on the child window height
-        si.nPage = (resizeRect.bottom - resizeRect.top) - pageHeightPoint.y - 375;
+        si.nPage = scrollBarY; //rect.bottom - rect.top; //(resizeRect.bottom - resizeRect.top) - pageHeightPoint.y - 375;
         SetScrollInfo(m_hScrollBar, SB_CTL, &si, TRUE);
+
 
         //SetScrollRange(m_hScrollBar, SB_VERT, 0, pageHeight, TRUE);
 
@@ -729,7 +790,7 @@ void WindowsApp::WinWinShowActive() {
         0,
         L"BUTTON",
         L"^",
-        WS_TABSTOP | WS_VISIBLE | WS_CHILD,
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
         10, 0, 270, 30,
         m_hActiveWindowsControlPanel,
         (HMENU)HIDE_ACTIVE_WINDOWS,
@@ -934,7 +995,18 @@ void WindowsApp::WinWinSaveLayout()
 }
 
 void WindowsApp::WinWinViewSaved() {
-    std::wstring WinWinLayoutsFolder = L"SavedLayouts/";
+
+    wchar_t exeWcharPath[MAX_PATH];
+    GetModuleFileName(NULL, exeWcharPath, MAX_PATH);
+
+    std::wstring exePath(exeWcharPath);
+    std::wstring::size_type pos = exePath.find_last_of(L"\\/");
+    std::wstring exeDir = exePath.substr(0, pos);
+
+    SetCurrentDirectory(exeDir.c_str()); // Set the working directory to the executable's directory
+
+    std::wstring WinWinLayoutsFolder = exeDir + L"/SavedLayouts/";
+
     std::wstring layoutName;
     int xPos = 15;
     int yPos = 140;
@@ -1083,7 +1155,19 @@ void WindowsApp::SaveDesktopLayout()
 }
 
 void WindowsApp::ViewSavedDesktopLayouts() {
-    std::wstring WinWinLayoutsFolder = L"SavedDesktopLayouts/";
+
+
+    wchar_t exeWcharPath[MAX_PATH];
+    GetModuleFileName(NULL, exeWcharPath, MAX_PATH);
+
+    std::wstring exePath(exeWcharPath);
+    std::wstring::size_type pos = exePath.find_last_of(L"\\/");
+    std::wstring exeDir = exePath.substr(0, pos);
+
+    SetCurrentDirectory(exeDir.c_str()); // Set the working directory to the executable's directory
+
+    std::wstring WinWinLayoutsFolder = exeDir + L"/SavedDesktopLayouts/";
+
     std::wstring layoutName;
     int xPos = 15;
     int yPos = 100;

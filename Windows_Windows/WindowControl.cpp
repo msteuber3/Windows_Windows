@@ -37,6 +37,7 @@ void WindowControl::Create()
     wc.lpfnWndProc = ControlPanelProc; // Set the window procedure function
     wc.hInstance = reinterpret_cast<HINSTANCE>(GetWindowLongPtr(m_Parent, GWLP_HINSTANCE));
     wc.lpszClassName = TEXT("ControlPanelClass");
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW);
 
     RegisterClass(&wc);
 
@@ -44,7 +45,7 @@ void WindowControl::Create()
        0,
        wc.lpszClassName, 
        L"Control Panel",
-       WS_CHILD | WS_VISIBLE | WS_BORDER,
+       WS_CHILD | WS_VISIBLE | WS_BORDER | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
        0,
        m_x + 30,
        280,
@@ -119,6 +120,26 @@ LPCWSTR WindowControl::GetInstanceTitle()
 
 LRESULT CALLBACK WindowControl::ControlPanelProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
+    case WM_PAINT:
+        PAINTSTRUCT ps;
+        HDC hdc;
+        RECT rect;
+        GetClientRect((HWND)lParam, &rect);
+        hdc = BeginPaint((HWND)lParam, &ps);
+        SetTextColor(hdc, RGB(0, 0, 0));
+        SetBkMode(hdc, TRANSPARENT);
+        EndPaint((HWND)lParam, &ps);
+        break;
+    case WM_ERASEBKGND:
+    {
+        HDC hdc = (HDC)wParam;
+        RECT rect;
+        GetClientRect((HWND)lParam, &rect);
+        HBRUSH hBrush = CreateSolidBrush(COLOR_WINDOW + 1);
+        FillRect(hdc, &rect, hBrush);
+        DeleteObject(hBrush);
+        break;
+    }
     case WM_COMMAND:
         if (HIWORD(wParam) == BN_CLICKED) {
             int id = LOWORD(wParam);
