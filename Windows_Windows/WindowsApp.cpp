@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 09/20/2024 MS-24.01.07.03 Fixed the scrollbar (finally)
 // 09/03/2024 MS-24.01.07.02 Moved all WinWin base functionality to WinWinFunctions for use with the command line and UI
 // 08/26/2024 MS-24.01.05.01 Reworked UI
 // 08/20/2024 MS-24.01.04.02 Added preprocessor definition for closed main window height
@@ -79,7 +80,6 @@ void WindowsApp::RunMessageLoop() {
 
 LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    static int yPos = 0;
     LRESULT lResult = 0;
 
     int newHeight;
@@ -89,32 +89,8 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         HandleCreate();
         break;
     case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(m_hwnd, &ps);
-
-        RECT rect;
-        GetClientRect(m_hwnd, &rect);
-        // Double buffering
-        HDC memDC = CreateCompatibleDC(hdc);
-        HBITMAP memBitmap = CreateCompatibleBitmap(hdc, rect.right - rect.left, rect.bottom - rect.top);
-        HGDIOBJ oldBitmap = SelectObject(memDC, memBitmap);
-
-        SetTextColor(hdc, RGB(0, 0, 0));
-        SetBkMode(hdc, TRANSPARENT);
-        EndPaint(m_hwnd, &ps);
-
-        // Copy the memory device context to the screen
-        BitBlt(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top, memDC, 0, 0, SRCCOPY);
-
-        // Clean up
-        SelectObject(memDC, oldBitmap);
-        DeleteObject(memBitmap);
-        DeleteDC(memDC);
-
-        EndPaint(m_hwnd, &ps);
+        HandlePaint();
         break;
-    }
     case WM_SIZE:
         HandleResize();
         // Show or hide the scroll bar based on window height
@@ -127,11 +103,6 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
             ShowWindow(m_hScrollBar, SW_HIDE);
             UpdateWindow(m_hScrollBar);
         }
-        
-
-      // Reposition the child window
-      // MoveWindow(m_hActiveWindowsControlPanel, 10, 10, 300, HIWORD(lParam), TRUE);
-
         break;
     case WM_ERASEBKGND:
     {
@@ -144,60 +115,7 @@ LRESULT WindowsApp::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     }
     case WM_VSCROLL:
-   //     HandleScroll(wParam, lParam);
-
-        if ((HWND)lParam == m_hScrollBar) {
-            int yDelta = 0; // Distance to scroll
-            int yNewPos; // New position of scroll box
-
-            // Get the current scroll position
-            SCROLLINFO si;
-            si.cbSize = sizeof(si);
-            si.fMask = SIF_ALL;
-            GetScrollInfo(m_hScrollBar, SB_CTL, &si);
-            yPos = si.nPos;
-
-            switch (LOWORD(wParam)) {
-            case SB_LINEUP:
-                yDelta = -1; // Scroll up one line
-                break;
-            case SB_LINEDOWN:
-                yDelta = 1; // Scroll down one line
-                break;
-            case SB_PAGEUP:
-                yDelta = -10; // Scroll up one page
-                break;
-            case SB_PAGEDOWN:
-                yDelta = 10; // Scroll down one page
-                break;
-            case SB_THUMBTRACK:
-                yNewPos = HIWORD(wParam); // Drag scroll box to new position
-                yDelta = yNewPos - yPos;
-                break;
-            default:
-                yDelta = 0;
-            }
-
-            // Update the scroll position
-            yPos += yDelta;
-            yPos = max(0, min(yPos, si.nMax - (int)si.nPage + 1)); // Ensure the position is within the range
-
-            // Set the scroll bar position
-            si.fMask = SIF_POS;
-            si.nPos = yPos;
-            SetScrollInfo(m_hScrollBar, SB_CTL, &si, TRUE);
-
-            RECT rect;
-            GetClientRect(m_hActiveWindowsControlPanel, &rect);
-            // Scroll the window content
-           // ScrollWindowEx(m_hActiveWindowsControlPanel, 0, -yDelta, &rect, NULL, NULL, NULL , NULL);
-          //  ScrollWindowEx(m_hActiveWindowsControlPanel, 0, -yDelta, NULL, NULL, NULL, NULL, SW_SCROLLCHILDREN | SW_SMOOTHSCROLL | (100 << 16) );
-            ScrollWindow(m_hActiveWindowsControlPanel, 0, -yDelta, NULL, NULL);
-       //     UpdateWindow(m_hActiveWindowsControlPanel);
-            RedrawWindow(m_hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
-
-
-        }
+       HandleScroll(wParam, lParam);
         break;
     case WM_COMMAND:
         if (HIWORD(wParam) == BN_CLICKED) {
@@ -323,41 +241,6 @@ LRESULT CALLBACK WindowsApp::ButtonProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPA
     if (uMsg == WM_VSCROLL) {
         SendMessage(GetParent(hwnd), uMsg, wParam, lParam);
         return 0;
-        //  int yDelta; // Distance to scroll
-        //  int yNewPos; // New position of scroll box
-        //
-        //  switch (LOWORD(wParam)) {
-        //  case SB_LINEUP:
-        //      yDelta = -1; // Scroll up one line
-        //      break;
-        //  case SB_LINEDOWN:
-        //      yDelta = 1; // Scroll down one line
-        //      break;
-        //  case SB_PAGEUP:
-        //      yDelta = -10; // Scroll up one page
-        //      break;
-        //  case SB_PAGEDOWN:
-        //      yDelta = 10; // Scroll down one page
-        //      break;
-        //  case SB_THUMBTRACK:
-        //      yNewPos = HIWORD(wParam); // Drag scroll box to new position
-        //      yDelta = yNewPos - yPos;
-        //      break;
-        //  default:
-        //      yDelta = 0;
-        //  }
-        //
-        //  // Update the scroll position
-        //  yPos += yDelta;
-        //  yPos = max(0, min(yPos, 100)); // Ensure the position is within the range
-        //
-        //  // Set the scroll bar position
-        //  SetScrollPos((HWND)lParam, SB_VERT, yPos, TRUE);
-        //
-        //  // Scroll the window content
-        //  ScrollWindow(hwnd, 0, -yDelta, NULL, NULL);
-        //  UpdateWindow(hwnd);
-        //
     }
     return CallWindowProcW(iconWindowProc, hwnd, uMsg, wParam, lParam);
 }
@@ -623,10 +506,17 @@ void WindowsApp::TriggerResize() {
 ///   HANDLE BASIC WINDOW EVENTS   ///
 
 void WindowsApp::HandleScroll(WPARAM wParam, LPARAM lParam) {
-    static int yPos = 0;
+    int yPos = 0;
     if ((HWND)lParam == m_hScrollBar) {
-        int yDelta; // Distance to scroll
+        int yDelta = 0; // Distance to scroll
         int yNewPos; // New position of scroll box
+
+        // Get the current scroll position
+        SCROLLINFO si;
+        si.cbSize = sizeof(si);
+        si.fMask = SIF_ALL;
+        GetScrollInfo(m_hScrollBar, SB_CTL, &si);
+        yPos = si.nPos;
 
         switch (LOWORD(wParam)) {
         case SB_LINEUP:
@@ -649,74 +539,44 @@ void WindowsApp::HandleScroll(WPARAM wParam, LPARAM lParam) {
             yDelta = 0;
         }
 
-        // Update the scroll position
+        // V Update the scroll position V
         yPos += yDelta;
-        yPos = max(0, min(yPos, 100)); // Ensure the position is within the range
+        yPos = max(0, min(yPos, si.nMax - (int)si.nPage + 1)); // Ensure the position is within the range
+        si.fMask = SIF_POS;
+        si.nPos = yPos;
+        SetScrollInfo(m_hScrollBar, SB_CTL, &si, TRUE);
 
-        // Set the scroll bar position
-        SetScrollPos(m_hScrollBar, SB_CTL, yPos, TRUE);
+        RECT rect;
+        GetClientRect(m_hActiveWindowsControlPanel, &rect);
+      
+        ScrollWindow(m_hActiveWindowsControlPanel, 0, -yDelta, NULL, NULL);   // Scroll the window content
+        RedrawWindow(m_hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
 
-        // Scroll the window content
-        ScrollWindow(m_hActiveWindowsControlPanel, 0, -yDelta, NULL, NULL);
-        UpdateWindow(m_hActiveWindowsControlPanel);
     }
-
-
-   
-
-
- //int scrollCode = LOWORD(wParam);
- //int nPos;
- //int nOldPos;
- //SCROLLINFO si;
- //si.cbSize = sizeof(SCROLLINFO);
- //si.fMask = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
- //GetScrollInfo(m_hwnd, SB_VERT, &si);
- //
- //nOldPos = si.nPos;
- //
- //switch (scrollCode) {
- //    case SB_TOP:            
- //        nPos = si.nMin; 
- //        break;
- //    case SB_BOTTOM:         
- //        nPos = si.nMax; 
- //        break;
- //    case SB_LINEUP:
- //        nPos = si.nPos - 1;
- //        break;
- //    case SB_LINEDOWN:
- //        nPos = si.nPos + 1;
- //        break;
- //    case SB_THUMBPOSITION:
- //        nPos = si.nTrackPos;
- //        break;
- //    default:
- //    case SB_THUMBTRACK:
- //        nPos = si.nPos;
- //        break;
- //}
- //SetScrollPos(m_hwnd, SB_VERT, nPos, TRUE);
- //
- //nPos = GetScrollPos(m_hwnd, SB_VERT);
- //
- //ScrollWindowEx(m_hwnd, 0, (int)(nOldPos - nPos) * 1,
- //    NULL, NULL, NULL, NULL, SW_INVALIDATE | SW_SCROLLCHILDREN);
- //
- //
- //
- //UpdateWindow(m_hwnd);
-
 }
 
 void WindowsApp::HandlePaint() {
     PAINTSTRUCT ps;
-    HDC hdc;
+    HDC hdc = BeginPaint(m_hwnd, &ps);
+
     RECT rect;
     GetClientRect(m_hwnd, &rect);
-    hdc = BeginPaint(m_hwnd, &ps);
+    // Double buffering
+    // In order to reduce a flickering effect from scrolling, this section draws to a back buffer before displaying it, at which point it swaps the back and front buffers, erases the back buffer, and starts drawing the next section.
+    HDC memDC = CreateCompatibleDC(hdc);
+    HBITMAP memBitmap = CreateCompatibleBitmap(hdc, rect.right - rect.left, rect.bottom - rect.top);
+    HGDIOBJ oldBitmap = SelectObject(memDC, memBitmap);
+
     SetTextColor(hdc, RGB(0, 0, 0));
     SetBkMode(hdc, TRANSPARENT);
+    EndPaint(m_hwnd, &ps);
+
+    BitBlt(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top, memDC, 0, 0, SRCCOPY);
+
+    SelectObject(memDC, oldBitmap);     // Clean up
+    DeleteObject(memBitmap);
+    DeleteDC(memDC);
+
     EndPaint(m_hwnd, &ps);
 
 }
@@ -724,29 +584,27 @@ void WindowsApp::HandlePaint() {
 void WindowsApp::HandleResize(){
     RECT resizeRect;
     if (m_hwnd != NULL) {
-        GetWindowRect(m_hwnd, &resizeRect);
-        //      SetWindowPos(m_hControlWindow, NULL, 0, 0, resizeRect.right, resizeRect.bottom, NULL);
+        GetWindowRect(m_hwnd, &resizeRect);  // Update the main window
         UpdateWindow(m_hwnd);
+
         RECT rect;
-        GetWindowRect(m_hActiveWindowsControlPanel, &rect);
+        GetWindowRect(m_hActiveWindowsControlPanel, &rect);   // Get the coordinates of the active windows control panel relative to the main window
         int pageHeight = rect.bottom - rect.top;
         POINT pageHeightPoint;
         pageHeightPoint.x = rect.right;
         pageHeightPoint.y = rect.top;
         ScreenToClient(m_hwnd, &pageHeightPoint);
-        int scrollBarY = (resizeRect.bottom - (resizeRect.top + 60)) - pageHeightPoint.y;
-        SetWindowPos(m_hScrollBar, NULL, pageHeightPoint.x, pageHeightPoint.y, 20, scrollBarY, NULL); // (resizeRect.bottom - resizeRect.top) - pageHeightPoint.y - 500
 
-        SCROLLINFO si;
+        int scrollBarY = (resizeRect.bottom - (resizeRect.top + 60)) - pageHeightPoint.y; // Calculate the height of the scroll bar 
+        SetWindowPos(m_hScrollBar, NULL, pageHeightPoint.x, pageHeightPoint.y, 20, scrollBarY, NULL); // And set its position
+
+        SCROLLINFO si;  // Update the scrolling info with the new scroll bar/active windows control panel size
         si.cbSize = sizeof(si);
         si.fMask = SIF_RANGE | SIF_PAGE;
         si.nMin = 0;
-        si.nMax = rect.bottom - rect.top; // Set the range based on the child window height
-        si.nPage = scrollBarY; //rect.bottom - rect.top; //(resizeRect.bottom - resizeRect.top) - pageHeightPoint.y - 375;
+        si.nMax = rect.bottom - rect.top;
+        si.nPage = scrollBarY; 
         SetScrollInfo(m_hScrollBar, SB_CTL, &si, TRUE);
-
-
-        //SetScrollRange(m_hScrollBar, SB_VERT, 0, pageHeight, TRUE);
 
     }
 }
