@@ -238,10 +238,6 @@ LRESULT CALLBACK WindowsApp::ButtonProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPA
         SendMessage(GetParent(hwnd), uMsg, wParam, lParam);
         return 0; 
     }
-    if (uMsg == WM_VSCROLL) {
-        SendMessage(GetParent(hwnd), uMsg, wParam, lParam);
-        return 0;
-    }
     return CallWindowProcW(iconWindowProc, hwnd, uMsg, wParam, lParam);
 }
 
