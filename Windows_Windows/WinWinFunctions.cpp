@@ -172,14 +172,14 @@ void WinWinFunctions::Cascade(std::vector<HWND> WindowVect) {
     int stackFactorY = 50;
     if (WindowVect.size() * stackFactorY + 760 > GetSystemMetrics(SM_CYSCREEN)) {
         stackFactorY = (GetSystemMetrics(SM_CYSCREEN) - 760) / WindowVect.size();
-        if (stackFactorY < 5) { stackFactorY = 5; }
+        if (stackFactorY < 10) { stackFactorY = 10; }
     }
     for (HWND ctrl : WindowVect) { //Iterate through all windows in WindowsVector (all open windows)
         SendMessage(ctrl, WM_SYSCOMMAND, SC_RESTORE, 0);
         ShowWindow(ctrl, SW_SHOWNORMAL);  // Set each window to normal mode (unmax/unmin)
         SetWindowPos(ctrl, HWND_TOPMOST, stackPosX, stackPosY, 750, 750, NULL); // Bring current window to front
         SetWindowPos(ctrl, HWND_NOTOPMOST, stackPosX, stackPosY, 750, 750, NULL); // Remove "TOPMOST" flag
-        stackPosX += 100;
+        stackPosX += 65;
         stackPosY += stackFactorY;
     }
 }
@@ -190,7 +190,7 @@ void WinWinFunctions::Squish(std::vector<HWND> WindowVect) {
     int stackFactorY = 50;
     if (WindowVect.size() * stackFactorY + 760 > GetSystemMetrics(SM_CYSCREEN)) {
         stackFactorY = (GetSystemMetrics(SM_CYSCREEN) - 760) / WindowVect.size();
-        if (stackFactorY < 5) { stackFactorY = 5; }
+        if (stackFactorY < 10) { stackFactorY = 10; }
     }
     RECT windowRect;
     for (HWND ctrl : WindowVect) { //Iterate through all windows in WindowsVector (all open windows)
@@ -198,7 +198,7 @@ void WinWinFunctions::Squish(std::vector<HWND> WindowVect) {
         if (windowRect.top == stackPosY && windowRect.left == stackPosX) { //&& windowRect.right - windowRect.left == 750 && windowRect.bottom - windowRect.top == 750
             ShowWindow(ctrl, SW_MINIMIZE);
         }
-        stackPosX += 75;
+        stackPosX += 65;
         stackPosY += stackFactorY;
     }
 }
