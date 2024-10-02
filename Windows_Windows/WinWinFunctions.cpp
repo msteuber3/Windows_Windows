@@ -4,6 +4,7 @@
 //===============================================
 // WinWinFunctions.cpp
 // ----------------------------------------------
+// 10/02/2024 AJ-25.24.0.7 Cascade tweaks and code review comments added
 // 09/03/2024 MS-24.01.07.02 Moved all WinWin base functionality here for use with the command line and UI
 // 09/03/2024 MS-24.01.07.01 created
 //-----------------------------------------------
@@ -166,40 +167,80 @@ void WinWinFunctions::StackWindowsCallback(std::vector<HWND> WindowVect)
     SubVector.clear();
 }
 
+#define CASCADE_SIZE_X          720
+#define CASCADE_SIZE_Y          480
+#define CASCADE_SIZE_TWEAK      10
+#define CASCADE_FACTOR_X        65
+#define CASCADE_FACTOR_Y        40
+
+/**
+ * @brief Arranges a set of windows in a cascading manner on the screen.
+ *
+ * This function iterates through a vector of window handles (HWND) and positions
+ * each window in a cascading layout starting from the top-left corner of the screen.
+ * It ensures that all windows fit within the screen height by adjusting the vertical
+ * offset if necessary.
+ *
+ * @param WindowVect A vector of HWNDs representing the windows to be cascaded.
+ */
 void WinWinFunctions::Cascade(std::vector<HWND> WindowVect) {
-    int stackPosX = 10;
-    int stackPosY = 10;
-    int stackFactorY = 50;
-    if (WindowVect.size() * stackFactorY + 760 > GetSystemMetrics(SM_CYSCREEN)) {
-        stackFactorY = (GetSystemMetrics(SM_CYSCREEN) - 760) / WindowVect.size();
-        if (stackFactorY < 10) { stackFactorY = 10; }
+    int stackPosX = 10;                         ///< Initial horizontal position for the first window
+    int stackPosY = 10;                         ///< Initial vertical position for the first window
+    int stackFactorY = CASCADE_FACTOR_Y;        ///< Initial Vertical offset between consecutive windows
+
+    // Adjust stackFactorY if the total height of all windows exceeds the screen height
+    if (WindowVect.size() * stackFactorY + CASCADE_SIZE_Y + CASCADE_SIZE_TWEAK > GetSystemMetrics(SM_CYSCREEN)) {
+        stackFactorY = (GetSystemMetrics(SM_CYSCREEN) - CASCADE_SIZE_Y + CASCADE_SIZE_TWEAK) / WindowVect.size();
+    
+        if (stackFactorY < 10) {
+            stackFactorY = 10;
+        }
     }
-    for (HWND ctrl : WindowVect) { //Iterate through all windows in WindowsVector (all open windows)
-        SendMessage(ctrl, WM_SYSCOMMAND, SC_RESTORE, 0);
-        ShowWindow(ctrl, SW_SHOWNORMAL);  // Set each window to normal mode (unmax/unmin)
-        SetWindowPos(ctrl, HWND_TOPMOST, stackPosX, stackPosY, 750, 750, NULL); // Bring current window to front
-        SetWindowPos(ctrl, HWND_NOTOPMOST, stackPosX, stackPosY, 750, 750, NULL); // Remove "TOPMOST" flag
-        stackPosX += 65;
+
+    //Iterate through all windows in WindowsVector (all open windows)
+    for (HWND ctrl : WindowVect) { 
+        SendMessage(ctrl, WM_SYSCOMMAND, SC_RESTORE, 0);    ///< Restore the window if minimized or maximized
+        ShowWindow(ctrl, SW_SHOWNORMAL);                    ///< Set each window to normal mode (unmax/unmin)
+        SetWindowPos(ctrl, HWND_TOPMOST, stackPosX, stackPosY, CASCADE_SIZE_X, CASCADE_SIZE_Y, NULL);     // Bring current window to front
+        SetWindowPos(ctrl, HWND_NOTOPMOST, stackPosX, stackPosY, CASCADE_SIZE_X, CASCADE_SIZE_Y, NULL);   // Remove "TOPMOST" flag
+        stackPosX += CASCADE_FACTOR_X;
         stackPosY += stackFactorY;
     }
 }
 
+/**
+ * @brief Squishes a Cascade by Minimizing windows that are already positioned at the specified coordinates.
+ *
+ * This function iterates through a vector of window handles (HWND) and minimizes
+ * any window that is already positioned at the specified coordinates. It adjusts
+ * the vertical offset if necessary to fit all windows within the screen height.
+ *
+ * @param WindowVect A vector of HWNDs representing the windows to be processed.
+ */
 void WinWinFunctions::Squish(std::vector<HWND> WindowVect) {
-    int stackPosX = 10;
-    int stackPosY = 10;
-    int stackFactorY = 50;
-    if (WindowVect.size() * stackFactorY + 760 > GetSystemMetrics(SM_CYSCREEN)) {
-        stackFactorY = (GetSystemMetrics(SM_CYSCREEN) - 760) / WindowVect.size();
+    int stackPosX = 10; ///< Initial horizontal position for the first window
+    int stackPosY = 10; ///< Initial vertical position for the first window
+    int stackFactorY = CASCADE_FACTOR_Y; ///< Vertical offset between consecutive windows
+
+    // Adjust stackFactorY if the total height of all windows exceeds the screen height
+    if (WindowVect.size() * stackFactorY + CASCADE_SIZE_Y + CASCADE_SIZE_TWEAK > GetSystemMetrics(SM_CYSCREEN)) {
+        stackFactorY = (GetSystemMetrics(SM_CYSCREEN) - CASCADE_SIZE_Y + CASCADE_SIZE_TWEAK) / WindowVect.size();
         if (stackFactorY < 10) { stackFactorY = 10; }
     }
-    RECT windowRect;
-    for (HWND ctrl : WindowVect) { //Iterate through all windows in WindowsVector (all open windows)
-        GetWindowRect(ctrl, &windowRect);
-        if (windowRect.top == stackPosY && windowRect.left == stackPosX) { //&& windowRect.right - windowRect.left == 750 && windowRect.bottom - windowRect.top == 750
+
+    RECT windowRect; ///< Rectangle structure to hold window dimensions
+
+    // Iterate through all windows in WindowVect
+    for (HWND ctrl : WindowVect) {
+        GetWindowRect(ctrl, &windowRect); ///< Get the dimensions of the current window
+
+        // Minimize the window if it is already at the specified position
+        if (windowRect.top == stackPosY && windowRect.left == stackPosX) {
             ShowWindow(ctrl, SW_MINIMIZE);
         }
-        stackPosX += 65;
-        stackPosY += stackFactorY;
+
+        stackPosX += CASCADE_FACTOR_X;  ///< Update horizontal position for the next window
+        stackPosY += stackFactorY;      ///< Update vertical position for the next window
     }
 }
 
