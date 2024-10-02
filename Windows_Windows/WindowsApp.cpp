@@ -4,6 +4,7 @@
 //===============================================
 // WindowsApp.cpp
 // ----------------------------------------------
+// 10/01/2024 AJ-25.24.0.6 code review comments added
 // 09/20/2024 MS-24.01.07.03 Fixed the scrollbar (finally)
 // 09/03/2024 MS-24.01.07.02 Moved all WinWin base functionality to WinWinFunctions for use with the command line and UI
 // 08/26/2024 MS-24.01.05.01 Reworked UI
@@ -456,9 +457,20 @@ void WindowsApp::CreateControlOpts() {
 
 ///   UTILITIIES   ///
 
+/**
+ * @brief Extracts window handles from a list of window controls.
+ *
+ * This function iterates through a vector of WindowControl pointers and extracts
+ * their HWNDs, storing them in a vector which is then returned.
+ *
+ * @param windowControls A vector of pointers to WindowControl objects.
+ * @return A vector of HWNDs extracted from the provided window controls.
+ */
 std::vector<HWND> WindowsApp::ExtractHwnds(std::vector<WindowControl*> windowControls) {
     std::vector<HWND> hwnds;
-    hwnds.reserve(windowControls.size()); // Reserve space to avoid reallocations
+
+    // Allocate enough memory for the hwnds vector to hold all the handles, which helps to avoid multiple memory reallocations as elements are added.
+    hwnds.reserve(windowControls.size());
 
     for (WindowControl* ctrl : windowControls) {
         hwnds.push_back(ctrl->GetInstanceHandle());
